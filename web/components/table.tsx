@@ -95,7 +95,7 @@ export function DataTable<T>({
                     </th>
                   )}
                   {columns.map((c) => (
-                    <th key={c.key} style={c.width ? { width: c.width } : undefined} aria-sort={sort?.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                    <th key={c.key} className={c.className?.split(' ').includes('num') ? 'num' : undefined} style={c.width ? { width: c.width } : undefined} aria-sort={sort?.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}>
                       {c.header && c.sortable !== false ? (
                         <button onClick={() => setSort((s) => (s?.key === c.key ? { key: c.key, desc: !s.desc } : { key: c.key }))}>
                           {c.header}

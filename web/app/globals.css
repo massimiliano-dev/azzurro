@@ -1114,3 +1114,8 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
 .notif-help { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
 .notif-help summary { cursor: pointer; font-weight: 600; }
 .notif-help ol { margin: 10px 0 2px; padding-left: 20px; display: grid; gap: 6px; }
+/* listino modelli AI: cifre allineate a destra */
+.model-prices .table td.num, .model-prices .table th.num { text-align: right; white-space: nowrap; }
+.model-prices, .model-prices > .card { min-width: 0; max-width: 100%; }
+.model-prices .scroll-x, .model-prices .table-wrap { max-width: 100%; overflow-x: auto; }
+.model-prices td.note { min-width: 240px; }

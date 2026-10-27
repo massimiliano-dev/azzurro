@@ -7,6 +7,7 @@ import { loadAccess, can } from '../arm/rbac.ts';
 import { typeDef } from '../arm/catalog.ts';
 import { HOURS_PER_MONTH, PRICES, VM_SIZES } from './prices.ts';
 import { estimate } from './engine.ts';
+import { CLAUDE_PRICES, MODEL_REGIONS, modelPrices } from './models.ts';
 import { facts, usagesUnder } from './engine.ts';
 import { period, CURRENCY } from './query.ts';
 import type { AppEnv } from '../types.ts';
@@ -14,6 +15,11 @@ import type { AppEnv } from '../types.ts';
 const SAMPLE = { id: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/sample/providers/x/y/sample', properties: {}, sku: {} };
 
 export function pricingRoutes(app: Hono<AppEnv>): void {
+  /** Modelli AI di Foundry / Azure OpenAI per regione (Azure Retail Prices, EUR) e Claude (Marketplace, USD). */
+  app.get('/_portal/pricing/models', async (c) => {
+    const list = await modelPrices(c.req.query('region') ?? 'swedencentral');
+    return c.json({ ...list, regions: MODEL_REGIONS, claude: CLAUDE_PRICES });
+  });
   app.get('/_portal/pricing', (c) => c.json({
     currency: CURRENCY,
     region: 'westeurope',

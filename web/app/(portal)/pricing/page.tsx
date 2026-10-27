@@ -5,10 +5,11 @@ import { useMemo, useState } from 'react';
 import { Coins, Search, Tags } from 'lucide-react';
 import { useAsync } from '@/lib/hooks';
 import { useI18n, type MessageKey } from '@/i18n';
-import { PageHeader } from '@/components/page';
+import { PageHeader, Tabs, useTab } from '@/components/page';
 import { ErrorNotice, Input, Notice, Skeleton, Switch } from '@/components/ui';
 import { ResourceIcon } from '@/components/resource';
 import { loadPricing, PriceCard, type PriceType } from '@/components/pricing';
+import { ModelPrices } from '@/components/modelprices';
 
 const CATEGORIES = ['compute', 'containers', 'web', 'storage', 'databases', 'networking', 'identity', 'security', 'integration', 'monitor', 'ai', 'management'];
 
@@ -18,6 +19,7 @@ export default function PricingPage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [all, setAll] = useState(false);
+  const [tab, setTab] = useTab('resources');
   const types: PriceType[] = data.data?.types ?? [];
   const shown = useMemo(() => types.filter((p) =>
     (all || (!p.hidden && p.model !== 'included')) &&
@@ -30,6 +32,8 @@ export default function PricingPage() {
   return (
     <>
       <PageHeader title={t('pricing.title')} subtitle={t('pricing.subtitle')} icon={Tags} actions={<Link className="btn" href="/costs"><Coins size={16} />{t('nav.costs')}</Link>} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ key: 'resources', label: locale === 'it' ? 'Risorse' : 'Resources' }, { key: 'models', label: locale === 'it' ? 'Modelli AI (GPT, Claude…)' : 'AI models (GPT, Claude…)' }]} />
+      {tab === 'models' ? <ModelPrices /> : <>
       {data.data && <Notice tone="warn">{data.data.disclaimer[locale]}</Notice>}
       <div className="toolbar pricing-tools" role="toolbar">
         <div className="input-icon"><Search size={16} aria-hidden /><Input type="search" placeholder={t('pricing.search')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t('pricing.search')} /></div>
@@ -65,6 +69,7 @@ export default function PricingPage() {
         </>
       )}
       {data.data && <p className="small muted" style={{ marginTop: 16 }}>{t('pricing.footer', { hours: String(data.data.hoursPerMonth) })}</p>}
+      </>}
     </>
   );
 }

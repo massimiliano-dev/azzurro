@@ -77,6 +77,19 @@ export const TOOL_SPECS: ToolSpec[] = [
     },
   },
   {
+    name: 'get_model_pricing',
+    description: 'Per-token prices of AI models deployable on Microsoft Foundry / Azure OpenAI (GPT-4.x/5.x/6, o-series, DeepSeek, Grok, Llama, Mistral, Phi, Cohere, Kimi…) from the Azure Retail Prices API in EUR per 1M tokens, by deployment type (global, datazone, regional) and variant (Batch, Priority, Flex, Long context), plus Claude models on Foundry (Anthropic list price via Azure Marketplace, USD). Filter with query (model name words) to keep the answer short.',
+    schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'words of the model name, e.g. "gpt-5.1", "grok", "claude sonnet"' },
+        region: { type: 'string', description: 'Azure region, default swedencentral' },
+        deployment: { type: 'string', enum: ['global', 'datazone', 'regional'] },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'estimate_resource',
     description: 'Monthly cost estimate of an existing resource: current plan, cost lines, whether usage is simulated, and whether it is idle (for example a deallocated VM).',
     schema: {
@@ -102,6 +115,7 @@ const Inputs = {
   graph_request: z.object({ method: z.enum(['GET', 'POST', 'PATCH', 'DELETE']), path: z.string().min(1), body: z.record(z.string(), z.unknown()).optional() }),
   query_costs: z.object({ scope: z.string().startsWith('/subscriptions/'), timeframe: z.enum(['MonthToDate', 'TheLastMonth', 'WeekToDate', 'Custom']).optional(), from: z.string().optional(), to: z.string().optional(), granularity: z.enum(['None', 'Daily', 'Monthly']).optional(), group_by: z.array(z.string()).max(2).optional(), forecast: z.boolean().optional() }),
   get_pricing: z.object({ resource_type: z.string().optional() }),
+  get_model_pricing: z.object({ query: z.string().max(80).optional(), region: z.string().max(40).optional(), deployment: z.enum(['global', 'datazone', 'regional']).optional() }),
   estimate_resource: z.object({ resource_id: z.string().startsWith('/') }),
   get_resource_type: z.object({ resource_type: z.string().optional() }),
 } as const;
@@ -262,6 +276,18 @@ export async function execute(ctx: ExecCtx, name: string, input: any): Promise<E
       const path = `${input.scope.replace(/\/+$/, '')}/providers/Microsoft.CostManagement/${forecast ? 'forecast' : 'query'}`;
       const r = await call(ctx, 'POST', `${path}?api-version=2023-03-01`, body);
       return { content: clip(JSON.stringify({ status: r.status, note: ctx.real ? 'Real Azure Cost Management data for this directory.' : 'Estimated costs in EUR from the emulator, not an Azure invoice.', body: r.json })), isError: r.status >= 400, request: { method: 'POST', path: `${path}?api-version=2023-03-01`, status: r.status, ms: r.ms } };
+    }
+    case 'get_model_pricing': {
+      const { modelPrices, CLAUDE_PRICES } = await import('../costs/models.ts');
+      const list = await modelPrices(input.region ?? 'swedencentral');
+      const words = String(input.query ?? '').toLowerCase().replace(/[-_]/g, ' ').split(/\s+/).filter(Boolean);
+      const match = (name: string) => words.every((w) => name.toLowerCase().replace(/[-_]/g, ' ').includes(w));
+      const rows = list.rows.filter((r) => match(`${r.family} ${r.model}`) && (!input.deployment || r.deployment === input.deployment)).slice(0, 60);
+      const claude = CLAUDE_PRICES.rows.filter((r) => !words.length || match(`claude ${r.model} ${r.id}`));
+      return { content: clip(JSON.stringify({
+        azure: { region: list.region, currency: 'EUR', per: '1M tokens', source: list.source, fetchedAt: list.fetchedAt, matches: rows.length, rows },
+        claudeOnFoundry: { currency: 'USD', per: '1M tokens', billedVia: 'Azure Marketplace (Anthropic list price)', rows: claude },
+      })), isError: false };
     }
     case 'get_pricing': {
       if (input.resource_type) {

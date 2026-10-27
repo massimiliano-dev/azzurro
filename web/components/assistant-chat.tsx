@@ -20,7 +20,7 @@ type Item =
 
 const SUGGESTIONS: MessageKey[] = ['ai.s1', 'ai.s2', 'ai.s3', 'ai.s4'];
 const DOCK_SUGGESTIONS: MessageKey[] = ['ai.c1', 'ai.c2', 'ai.c3'];
-const TOOL_LABEL: Record<string, MessageKey> = { arm_request: 'ai.tool.arm', graph_request: 'ai.tool.graph', query_costs: 'ai.tool.costs', get_pricing: 'ai.tool.pricing', estimate_resource: 'ai.tool.estimate', get_resource_type: 'ai.tool.type' };
+const TOOL_LABEL: Record<string, MessageKey> = { arm_request: 'ai.tool.arm', graph_request: 'ai.tool.graph', query_costs: 'ai.tool.costs', get_pricing: 'ai.tool.pricing', get_model_pricing: 'ai.tool.pricing', estimate_resource: 'ai.tool.estimate', get_resource_type: 'ai.tool.type' };
 
 export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mode?: 'page' | 'dock'; context?: () => Record<string, unknown>; onClose?: () => void; onBusy?: (busy: boolean) => void }) {
   const { t, fmtRelative } = useI18n();
