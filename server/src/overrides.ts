@@ -11,13 +11,15 @@ export const CONFIG_FILE = process.env.AZZURRO_CONFIG_FILE || new URL('../../.az
 export interface Field {
   key: string;
   group: 'ai' | 'microsoft' | 'access';
-  kind: 'text' | 'secret' | 'url' | 'select' | 'bool';
+  kind: 'text' | 'secret' | 'url' | 'select' | 'bool' | 'owner';
   def?: string;
   options?: string[];
 }
 
 export const FIELDS: Field[] = [
-  { key: 'AZZURRO_ASSISTANT_PROVIDER', group: 'ai', kind: 'select', options: ['', 'local', 'claude', 'openai'] },
+  { key: 'AZZURRO_ASSISTANT_PROVIDER', group: 'ai', kind: 'select', options: ['', 'local', 'claudecode', 'claude', 'openai'] },
+  { key: 'AZZURRO_CLAUDE_CODE_OWNER', group: 'ai', kind: 'owner' },
+  { key: 'AZZURRO_CLAUDE_CODE_MODEL', group: 'ai', kind: 'text' },
   { key: 'AZZURRO_LOCAL_AI_URL', group: 'ai', kind: 'url', def: 'http://localhost:11434/v1' },
   { key: 'AZZURRO_LOCAL_MODEL', group: 'ai', kind: 'text', def: 'qwen3.8:27b' },
   { key: 'AZZURRO_LOCAL_AI_KEY', group: 'ai', kind: 'secret' },

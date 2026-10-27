@@ -25,6 +25,8 @@ export interface Conversation {
   history: unknown[];
   display: DisplayItem[];
   pending: null | { calls: ToolCall[]; results: Record<string, { content: string; isError: boolean }>; awaiting: string[] };
+  /** sessione di Claude Code (provider claudecode), per riprendere la conversazione */
+  sdkSessionId?: string;
 }
 
 export type Emit = (event: string, data: unknown) => Promise<void> | void;
@@ -195,13 +197,97 @@ async function guarded(conv: Conversation, fn: () => Promise<void>, provider: Pr
 
 export async function chat(provider: Provider, conv: Conversation, text: string, ctx: ExecCtx, system: string, emit: Emit): Promise<void> {
   await guarded(conv, async () => {
-    if (conv.pending) await settle(provider, conv, ctx, Object.fromEntries(conv.pending.awaiting.map((id) => [id, false])), emit);
-    conv.history.push(provider.userMessage(text));
+    if (conv.pending && provider.agent) await dropPending(conv, emit);
+    else if (conv.pending) await settle(provider, conv, ctx, Object.fromEntries(conv.pending.awaiting.map((id) => [id, false])), emit);
+    if (!provider.agent) conv.history.push(provider.userMessage(text));
     const u: DisplayItem = { type: 'user', text, at: nowIso() };
     conv.display.push(u);
     await saveConversation(conv);
-    await loop(provider, conv, ctx, system, emit);
+    if (provider.agent) await agentTurn(provider, conv, text, ctx, system, emit);
+    else await loop(provider, conv, ctx, system, emit);
   }, provider, emit, ctx.signal);
+}
+
+// ------------------------------------------------------------------ provider con ciclo proprio (Claude Code)
+
+/** Conferme in attesa dentro un'esecuzione viva: lo strumento aspetta il clic dell'utente. */
+const approvals = new Map<string, (ok: boolean) => void>();
+
+/** Consegna le decisioni a un'esecuzione in attesa; false se nessuno le aspettava. */
+export function resolveApprovals(convId: string, decisions: Record<string, boolean>): boolean {
+  let any = false;
+  for (const [id, ok] of Object.entries(decisions)) {
+    const f = approvals.get(`${convId}:${id}`);
+    if (f) { f(ok); any = true; }
+  }
+  return any;
+}
+
+function waitApproval(convId: string, id: string, signal?: AbortSignal): Promise<boolean> {
+  const k = `${convId}:${id}`;
+  return new Promise((resolve, reject) => {
+    approvals.set(k, (ok) => { approvals.delete(k); resolve(ok); });
+    signal?.addEventListener('abort', () => { approvals.delete(k); reject(signal.reason ?? new Error('aborted')); }, { once: true });
+  });
+}
+
+/** Conferme rimaste appese (server riavviato): non si possono più eseguire. */
+async function dropPending(conv: Conversation, emit: Emit) {
+  for (const id of conv.pending?.awaiting ?? []) {
+    const item = conv.display.find((d) => d.type === 'tool' && d.id === id) as Extract<DisplayItem, { type: 'tool' }> | undefined;
+    if (item) { item.status = 'rejected'; await emit('tool', item); }
+  }
+  conv.pending = null;
+}
+
+async function agentTurn(provider: Provider, conv: Conversation, prompt: string, ctx: ExecCtx, system: string, emit: Emit) {
+  let text = '';
+  let reasoning = '';
+  let model: string | undefined;
+  const flush = async () => {
+    if (!text.trim() && !reasoning.trim()) return;
+    const item: DisplayItem = { type: 'assistant', text, reasoning: reasoning.trim() || undefined, model, at: nowIso() };
+    conv.display.push(item);
+    await emit('message', item);
+    text = '';
+    reasoning = '';
+  };
+  const res = await provider.agent!.run({
+    prompt,
+    system,
+    resume: conv.sdkSessionId,
+    signal: ctx.signal,
+    onText: (d) => { text += d; void emit('text', { delta: d }); },
+    onReasoning: (d) => { reasoning += d; void emit('reasoning', { delta: d }); },
+    onModel: (m) => { model = m; },
+    runTool: async (name, input) => {
+      await flush();
+      const call: ToolCall = { id: uuid(), name, input };
+      const kind = classify(name, input);
+      const needs = kind === 'delete' || (kind === 'write' && (!conv.autoApprove || !!ctx.real));
+      const item: DisplayItem = { type: 'tool', id: call.id, name, input, kind, status: needs ? 'pending' : 'running', summary: describeCall(name, input), at: nowIso() };
+      conv.display.push(item);
+      await emit('tool', item);
+      if (needs) {
+        conv.pending = { calls: [call], results: {}, awaiting: [call.id] };
+        await saveConversation(conv);
+        await emit('pending', { ids: [call.id] });
+        const ok = await waitApproval(conv.id, call.id, ctx.signal);
+        conv.pending = null;
+        await emit('pending', { ids: [] });
+        if (!ok) {
+          item.status = 'rejected';
+          await emit('tool', item);
+          return { content: JSON.stringify({ rejected: true, message: 'The user rejected this call. Do not retry it.' }), isError: true };
+        }
+      }
+      return runCall(ctx, call, conv, emit);
+    },
+  });
+  if (res.sessionId) conv.sdkSessionId = res.sessionId;
+  await flush();
+  ctx.signal?.throwIfAborted();
+  if (res.error) throw new Error(res.error);
 }
 
 async function settle(provider: Provider, conv: Conversation, ctx: ExecCtx, decisions: Record<string, boolean>, emit: Emit) {
@@ -223,6 +309,14 @@ async function settle(provider: Provider, conv: Conversation, ctx: ExecCtx, deci
 export async function decide(provider: Provider, conv: Conversation, decisions: Record<string, boolean>, ctx: ExecCtx, system: string, emit: Emit): Promise<void> {
   await guarded(conv, async () => {
     if (!conv.pending) return;
+    if (provider.agent) {
+      // l'esecuzione che aspettava la conferma non c'è più (server riavviato): si ricomincia
+      await dropPending(conv, emit);
+      const n: DisplayItem = { type: 'notice', tone: 'warn', text: 'expired', at: nowIso() };
+      conv.display.push(n);
+      await emit('notice', n);
+      return;
+    }
     await settle(provider, conv, ctx, decisions, emit);
     await saveConversation(conv);
     await loop(provider, conv, ctx, system, emit);

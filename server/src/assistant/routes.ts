@@ -7,23 +7,25 @@ import { HttpError } from '../errors.ts';
 import { getSettings } from '../push.ts';
 import { loadAccess, can, hasAnyAccessWithin } from '../arm/rbac.ts';
 import type { AppEnv } from '../types.ts';
-import { chat, decide, loadConversation, newConversation, systemPrompt, type Conversation } from './agent.ts';
+import { chat, decide, resolveApprovals, loadConversation, newConversation, systemPrompt, type Conversation } from './agent.ts';
 import { claude, claudeAvailable, claudeModel } from './claude.ts';
+import { claudeCode, claudeCodeAccount, claudeCodeAvailableFor, claudeCodeModel, claudeCodeOwner } from './claudecode.ts';
 import { local, localAvailable, localModel, localUrl, openai, openaiAvailable, openaiModel, probeLocal } from './openai.ts';
 import type { Provider } from './provider.ts';
 import { realJson, sessionDirectory, type Directory } from '../real/proxy.ts';
 
-const PROVIDERS: Record<Provider['id'], { p: Provider; available: () => boolean }> = {
+const PROVIDERS: Record<Provider['id'], { p: Provider; available: (userId: string) => boolean }> = {
   local: { p: local, available: localAvailable },
+  claudecode: { p: claudeCode, available: claudeCodeAvailableFor },
   claude: { p: claude, available: claudeAvailable },
   openai: { p: openai, available: openaiAvailable },
 };
 
-function pick(id?: string): Provider {
+function pick(userId: string, id?: string): Provider {
   const wanted = (id ?? process.env.AZZURRO_ASSISTANT_PROVIDER ?? '') as Provider['id'];
-  if (PROVIDERS[wanted]?.available()) return PROVIDERS[wanted].p;
+  if (PROVIDERS[wanted]?.available(userId)) return PROVIDERS[wanted].p;
   if (wanted && PROVIDERS[wanted]) throw new HttpError(400, 'provider_not_configured', `${PROVIDERS[wanted].p.label} is not configured on the server.`);
-  const first = Object.values(PROVIDERS).find((x) => x.available());
+  const first = Object.values(PROVIDERS).find((x) => x.available(userId));
   if (!first) throw new HttpError(400, 'provider_not_configured', 'No AI provider is configured: set ANTHROPIC_API_KEY or OPENAI_API_KEY.');
   return first.p;
 }
@@ -128,15 +130,22 @@ function pipe(c: any, run: Run, from: number, first?: RunEvent): Response {
 const view = (c: Conversation) => ({ id: c.id, title: c.title, provider: c.provider, autoApprove: c.autoApprove, createdAt: c.createdAt, updatedAt: c.updatedAt, display: c.display, pending: c.pending ? c.pending.awaiting : [], running: running(c.id) });
 
 export function assistantRoutes(app: Hono<AppEnv>): void {
-  app.use('/_portal/assistant/*', async (_c, next) => { await probeLocal(); await next(); });
-  app.get('/_portal/assistant/status', (c) => c.json({
-    providers: [
-      { id: 'local', label: 'Locale', model: localModel(), available: localAvailable(), env: `AZZURRO_LOCAL_MODEL (${localUrl()})` },
-      { id: 'claude', label: 'Claude', model: claudeModel(), available: claudeAvailable(), env: 'ANTHROPIC_API_KEY' },
-      { id: 'openai', label: 'GPT', model: openaiModel(), available: openaiAvailable(), env: 'OPENAI_API_KEY' },
-    ],
-    default: (() => { try { return pick().id; } catch { return null; } })(),
-  }));
+  app.use('/_portal/assistant/*', async (_c, next) => { await probeLocal(); if (claudeCodeOwner()) await claudeCodeAccount(); await next(); });
+  app.get('/_portal/assistant/status', async (c) => {
+    const uid = c.get('principal').oid;
+    // Claude Code compare solo per l'utente a cui l'amministratore l'ha associato
+    const mine = !!claudeCodeOwner() && claudeCodeOwner() === uid;
+    const acct = mine ? await claudeCodeAccount() : null;
+    return c.json({
+      providers: [
+        { id: 'local', label: 'Locale', model: localModel(), available: localAvailable(), env: `AZZURRO_LOCAL_MODEL (${localUrl()})` },
+        ...(mine ? [{ id: 'claudecode', label: 'Claude Code', model: claudeCodeModel() || acct?.subscriptionType || 'Claude Code', available: claudeCodeAvailableFor(uid), env: 'claude login', account: acct?.loggedIn ? { email: acct.email, plan: acct.subscriptionType } : null }] : []),
+        { id: 'claude', label: 'Claude', model: claudeModel(), available: claudeAvailable(), env: 'ANTHROPIC_API_KEY' },
+        { id: 'openai', label: 'GPT', model: openaiModel(), available: openaiAvailable(), env: 'OPENAI_API_KEY' },
+      ],
+      default: (() => { try { return pick(uid).id; } catch { return null; } })(),
+    });
+  });
 
   app.get('/_portal/assistant/conversations', async (c) => {
     const p = c.get('principal');
@@ -184,7 +193,7 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     if (!text) throw new HttpError(400, 'empty_message', 'Write a message.');
     if (text.length > 8000) throw new HttpError(400, 'message_too_long', 'The message is too long.');
     let conv = body.conversationId ? await loadConversation(p.oid, String(body.conversationId)) : null;
-    const provider = pick(conv?.provider ?? body.provider);
+    const provider = pick(p.oid, conv?.provider ?? body.provider);
     conv ??= newConversation(p.oid, provider.id, text, body.autoApprove !== false);
     if (typeof body.autoApprove === 'boolean') conv.autoApprove = body.autoApprove;
     const real = (await sessionDirectory(c))?.directory ?? null;
@@ -205,7 +214,9 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     if (!conv) throw new HttpError(404, 'not_found', 'Conversation not found.');
     const body = await readJson(c);
     const decisions: Record<string, boolean> = Object.fromEntries(Object.entries(body.decisions ?? {}).map(([k, v]) => [k, v === true || v === 'approve']));
-    const provider = pick(conv.provider);
+    // Claude Code aspetta la risposta dentro l'esecuzione in corso: si consegna e basta
+    if (running(conv.id) && resolveApprovals(conv.id, decisions)) return c.body(null, 204);
+    const provider = pick(p.oid, conv.provider);
     const real = (await sessionDirectory(c))?.directory ?? null;
     const system = await systemFor(p.oid, p, real, body.context);
     const cookie = c.req.header('cookie') ?? '';

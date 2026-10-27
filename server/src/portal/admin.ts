@@ -7,6 +7,8 @@ import { GLOBAL_ADMIN } from '../firstParty.ts';
 import { CONFIG_FILE, describeConfig, FIELDS, readOverrides, writeOverrides } from '../overrides.ts';
 import { msEnabled, msRedirectUri } from '../auth/microsoft.ts';
 import { config } from '../config.ts';
+import * as store from '../db/store.ts';
+import { claudeCodeAccount, claudeCodeOwner } from '../assistant/claudecode.ts';
 import type { AppEnv } from '../types.ts';
 
 async function requireGlobalAdmin(p: { kind: string; oid: string }): Promise<void> {
@@ -15,16 +17,22 @@ async function requireGlobalAdmin(p: { kind: string; oid: string }): Promise<voi
   }
 }
 
-const view = () => ({
-  file: CONFIG_FILE,
-  fields: describeConfig(),
-  microsoft: { enabled: msEnabled(), redirectUri: msRedirectUri(), localLogin: config.localLogin },
-});
+const view = async () => {
+  const owner = claudeCodeOwner();
+  const u = owner ? await store.get<any>('user', owner) : null;
+  return {
+    file: CONFIG_FILE,
+    fields: describeConfig(),
+    microsoft: { enabled: msEnabled(), redirectUri: msRedirectUri(), localLogin: config.localLogin },
+    // account Claude Code del Mac: email e piano, mai i token
+    claudeCode: { ...(await claudeCodeAccount(true)), owner: owner ? { id: owner, upn: u?.userPrincipalName ?? owner } : null },
+  };
+};
 
 export function adminRoutes(app: Hono<AppEnv>): void {
   app.get('/_portal/admin/config', async (c) => {
     await requireGlobalAdmin(c.get('principal'));
-    return c.json(view());
+    return c.json(await view());
   });
 
   app.put('/_portal/admin/config', async (c) => {
@@ -43,6 +51,8 @@ export function adminRoutes(app: Hono<AppEnv>): void {
       if (f.key === 'AZZURRO_MS_TENANT_ID' || f.key === 'AZZURRO_MS_CLIENT_ID') {
         if (typeof v === 'string' && v.trim() && !/^[0-9a-f-]{36}$/i.test(v.trim())) throw new HttpError(400, 'invalid_value', `${f.key} must be a GUID.`);
       }
+      // l'abbonamento Claude è personale: ognuno può associarlo solo a sé stesso
+      if (f.kind === 'owner' && typeof v === 'string' && v && v !== c.get('principal').oid) throw new HttpError(400, 'invalid_value', 'You can link the Claude Code account of this Mac only to yourself.');
       changes[f.key] = v as string | null;
     }
     const before = readOverrides();
@@ -52,6 +62,6 @@ export function adminRoutes(app: Hono<AppEnv>): void {
       writeOverrides(Object.fromEntries(FIELDS.map((f) => [f.key, before[f.key] ?? null])));
       throw new HttpError(400, 'lockout', 'Turning off local sign-in needs Microsoft sign-in to be fully configured first.');
     }
-    return c.json(view());
+    return c.json(await view());
   });
 }

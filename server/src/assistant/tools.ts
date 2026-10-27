@@ -110,7 +110,7 @@ export const TOOL_SPECS: ToolSpec[] = [
   },
 ];
 
-const Inputs = {
+export const Inputs = {
   arm_request: z.object({ method: z.enum(['GET', 'PUT', 'PATCH', 'POST', 'DELETE']), path: z.string().startsWith('/'), api_version: z.string().optional(), query: z.record(z.string(), z.string()).optional(), body: z.record(z.string(), z.unknown()).optional() }),
   graph_request: z.object({ method: z.enum(['GET', 'POST', 'PATCH', 'DELETE']), path: z.string().min(1), body: z.record(z.string(), z.unknown()).optional() }),
   query_costs: z.object({ scope: z.string().startsWith('/subscriptions/'), timeframe: z.enum(['MonthToDate', 'TheLastMonth', 'WeekToDate', 'Custom']).optional(), from: z.string().optional(), to: z.string().optional(), granularity: z.enum(['None', 'Daily', 'Monthly']).optional(), group_by: z.array(z.string()).max(2).optional(), forecast: z.boolean().optional() }),

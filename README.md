@@ -88,6 +88,10 @@ npm run service:uninstall
 
 L'app installata risponde su **http://azzurro.localhost** (API su `http://localhost:4400`), così le porte 3000 e 4000 restano libere per lo sviluppo. Indirizzo e porte si cambiano con `AZZURRO_HOST`, `AZZURRO_WEB_PORT` e `AZZURRO_API_PORT` prima di `service:install`; il nuovo indirizzo va aggiunto agli URI di reindirizzamento dell'app Entra. Il servizio parte a ogni accesso, si riavvia se si chiude, apre Docker Desktop in background se non è avviato, attende PostgreSQL e poi avvia API e portale. Gira da una copia dell'app perché macOS non lascia ai servizi in background leggere la cartella Scrivania.
 
+## Assistente con l'account Claude Code del Mac
+
+Invece di una chiave API, l'assistente può usare l'account Claude Code già collegato su questo Mac (abbonamento Pro/Max). Si attiva in **Impostazioni → Configurazione del server → «Usa il mio account Claude Code»**: vale solo per l'amministratore che lo attiva, perché i termini di Anthropic non permettono di usare un abbonamento per conto di altri utenti. Funziona tramite Claude Agent SDK, che esegue il binario ufficiale di Claude Code: login e token restano a Claude Code, Azzurro non li legge né li conserva. Gli strumenti di Claude Code (terminale, file, web) e le impostazioni personali (`~/.claude`, CLAUDE.md) sono esclusi: l'assistente ha solo gli strumenti di Azzurro, con le stesse conferme. Consuma i limiti del piano; le sessioni finiscono in `~/Library/Application Support/Azzurro/claude-code`. Se Claude Code non è collegato: `claude` nel Terminale e accedi.
+
 ## Assistente con un modello locale
 
 Se Ollama (o LM Studio) è in esecuzione, l'assistente usa per primo il modello locale: niente chiavi e niente dati fuori dal computer. Il default è `qwen3.8:27b` su `http://localhost:11434/v1`; si cambia con `AZZURRO_LOCAL_MODEL` e `AZZURRO_LOCAL_AI_URL`. Serve un modello che supporti gli strumenti. Claude e GPT restano selezionabili se imposti `ANTHROPIC_API_KEY` o `OPENAI_API_KEY`.

@@ -5,12 +5,13 @@ import { RotateCcw, Save, ServerCog } from 'lucide-react';
 import { portal } from '@/lib/api';
 import { invalidateAll } from '@/lib/cache';
 import { useAsync } from '@/lib/hooks';
+import { useSession } from '@/lib/session';
 import { useI18n, type MessageKey } from '@/i18n';
 import { Badge, Button, Card, Field, Input, Select, Skeleton, Switch } from './ui';
 import { useToast } from './overlay';
 
-interface CfgField { key: string; group: 'ai' | 'microsoft' | 'access'; kind: 'text' | 'secret' | 'url' | 'select' | 'bool'; options?: string[]; def?: string; set: boolean; value?: string; hint?: string; source: 'portal' | 'env' | 'default' }
-interface CfgView { file: string; fields: CfgField[]; microsoft: { enabled: boolean; redirectUri: string; localLogin: boolean } }
+interface CfgField { key: string; group: 'ai' | 'microsoft' | 'access'; kind: 'text' | 'secret' | 'url' | 'select' | 'bool' | 'owner'; options?: string[]; def?: string; set: boolean; value?: string; hint?: string; source: 'portal' | 'env' | 'default' }
+interface CfgView { file: string; fields: CfgField[]; microsoft: { enabled: boolean; redirectUri: string; localLogin: boolean }; claudeCode: { loggedIn: boolean; email?: string; subscriptionType?: string; error?: string; owner: { id: string; upn: string } | null } }
 
 const GROUPS: { id: CfgField['group']; title: MessageKey; body: MessageKey }[] = [
   { id: 'ai', title: 'cfg.ai', body: 'cfg.aiBody' },
@@ -22,6 +23,7 @@ const GROUPS: { id: CfgField['group']; title: MessageKey; body: MessageKey }[] =
 export function ServerConfig() {
   const { t } = useI18n();
   const toast = useToast();
+  const me = useSession().session?.user;
   const cfg = useAsync(() => portal.get<CfgView>('/admin/config'), []);
   const [draft, setDraft] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
@@ -49,6 +51,20 @@ export function ServerConfig() {
       const cur = v ?? f.value ?? '';
       return <Switch checked={cur ? cur === 'on' : cfg.data!.microsoft.localLogin} onChange={(on) => edit(f.key, on ? 'on' : 'off')} label={t(`cfg.${f.key}` as MessageKey)} />;
     }
+    if (f.kind === 'owner') {
+      const cc = cfg.data!.claudeCode;
+      const cur = v ?? f.value ?? '';
+      const someoneElse = !!cur && cur !== me?.id;
+      return (
+        <div className="stack" style={{ gap: 6 }}>
+          <Switch checked={!!me && cur === me.id} disabled={!cc.loggedIn || someoneElse} onChange={(on) => edit(f.key, on ? me!.id : '')} label={t('cfg.ccUse')} />
+          <span className="small muted">
+            {cc.loggedIn ? t('cfg.ccSignedIn', { email: cc.email ?? '—', plan: cc.subscriptionType ?? '—' }) : t('cfg.ccSignedOut')}
+            {someoneElse && cc.owner ? ` · ${t('cfg.ccOwner', { upn: cc.owner.upn })}` : ''}
+          </span>
+        </div>
+      );
+    }
     if (f.kind === 'select') {
       return (
         <Select id={id} value={v ?? f.value ?? ''} onChange={(e) => edit(f.key, e.target.value)}>
@@ -63,7 +79,7 @@ export function ServerConfig() {
           value={v ?? ''} onChange={(e) => (e.target.value ? edit(f.key, e.target.value) : setDraft(({ [f.key]: _, ...rest }) => rest))} />
       );
     }
-    return <Input id={id} className="mono" spellCheck={false} placeholder={f.def} value={v ?? f.value ?? ''} onChange={(e) => edit(f.key, e.target.value)} />;
+    return <Input id={id} className="mono" spellCheck={false} placeholder={f.def ?? (f.key === 'AZZURRO_CLAUDE_CODE_MODEL' ? t('cfg.ccModelDefault') : undefined)} value={v ?? f.value ?? ''} onChange={(e) => edit(f.key, e.target.value)} />;
   };
   return (
     <Card title={<span className="row" style={{ gap: 8 }}><ServerCog size={18} aria-hidden />{t('cfg.title')}</span>}
@@ -84,7 +100,7 @@ export function ServerConfig() {
               <div className="cfg-fields">
                 {cfg.data!.fields.filter((f) => f.group === g.id).map((f) => (
                   <Field key={f.key} htmlFor={`cfg-${f.key}`}
-                    label={f.kind === 'bool' ? undefined : <span className="cfg-label">{t(`cfg.${f.key}` as MessageKey)}<span className="mono small muted">{f.key}</span></span>}
+                    label={f.kind === 'bool' || f.kind === 'owner' ? undefined : <span className="cfg-label">{t(`cfg.${f.key}` as MessageKey)}<span className="mono small muted">{f.key}</span></span>}
                     hint={
                       <span className="row" style={{ gap: 8 }}>
                         <span>{t(`cfg.src.${f.source}`)}{f.key in draft ? ` · ${t('cfg.changed')}` : ''}</span>

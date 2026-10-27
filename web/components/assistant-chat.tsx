@@ -126,6 +126,8 @@ export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mod
   const decide = (decisions: Record<string, boolean>) => {
     if (!convId) return;
     setPending([]);
+    // Claude Code aspetta la conferma dentro la risposta in corso: basta consegnarla, lo stream continua
+    if (busy) { void portal.post(`/assistant/conversations/${convId}/decide`, { decisions }).catch((e) => toast.error(e)); return; }
     void run((signal) => postSSE(`/api/portal/assistant/conversations/${convId}/decide`, { decisions, context: context?.() }, onEvent, signal));
   };
 
@@ -162,7 +164,7 @@ export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mod
                 <p className="small muted">{t('ai.privacy')}</p>
               </div>
             )}
-            {items.map((it, i) => <Row key={`${it.type}-${'id' in it ? it.id : i}`} it={it} pending={pending} onDecide={decide} busy={busy} />)}
+            {items.map((it, i) => <Row key={`${it.type}-${'id' in it ? it.id : i}`} it={it} pending={pending} onDecide={decide} busy={busy && !pending.includes('id' in it ? it.id : '')} />)}
             {(draft || thinking) && (
               <div className="ai-row assistant streaming"><span className="who">{t('ai.who.assistant')}</span>
                 <div className="body">
@@ -172,7 +174,7 @@ export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mod
               </div>
             )}
             {busy && !draft && !thinking && <div className="ai-row thinking"><span className="who">{t('ai.who.assistant')}</span><div className="body"><span className="dots" aria-label={t('ai.working')}><i /><i /><i /></span></div></div>}
-            {pending.length > 1 && !busy && (
+            {pending.length > 1 && (
               <div className="ai-bulk">
                 <Button variant="primary" icon={Check} onClick={() => decide(Object.fromEntries(pending.map((id) => [id, true])))}>{t('ai.approveAll')}</Button>
                 <Button icon={X} onClick={() => decide(Object.fromEntries(pending.map((id) => [id, false])))}>{t('ai.rejectAll')}</Button>
@@ -244,7 +246,7 @@ function Row({ it, pending, onDecide, busy }: { it: Item; pending: string[]; onD
     );
   }
   if (it.type === 'notice') {
-    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text === 'stopped' ? t('ai.stopped') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
+    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text === 'stopped' ? t('ai.stopped') : it.text === 'expired' ? t('ai.expired') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
     return <div className="ai-row notice"><Notice tone={it.tone}>{msg}</Notice></div>;
   }
   const isPending = it.status === 'pending' && pending.includes(it.id);
