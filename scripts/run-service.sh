@@ -15,4 +15,6 @@ log "avvio database"
 docker compose up -d --wait db || { log "database non avviato"; exit 1; }
 [ -f web/.next/BUILD_ID ] || npm run build
 log "avvio Azzurro su ${PORTAL_URL:-http://localhost:3000}"
-exec npx concurrently -n api,web -c blue,cyan "npm:start -w server" "npm:serve -w web"
+# se una delle due parti si ferma (crash, kill) si ferma tutto e launchd riavvia il servizio:
+# altrimenti il portale resterebbe su con le API giù e ogni chiamata darebbe 500
+exec npx concurrently --kill-others --kill-signal SIGTERM -n api,web -c blue,cyan "npm:start -w server" "npm:serve -w web"

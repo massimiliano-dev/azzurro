@@ -67,8 +67,8 @@ write_plist() {
     <key>AZZURRO_MS_REDIRECT_BASE</key><string>http://localhost$([ "$WEB_PORT" = 80 ] || echo ":$WEB_PORT")</string>
   </dict>
   <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
-  <key>ThrottleInterval</key><integer>30</integer>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
   <key>ProcessType</key><string>Background</string>
   <key>StandardOutPath</key><string>$LOGS/azzurro.log</string>
   <key>StandardErrorPath</key><string>$LOGS/azzurro.log</string>
