@@ -1,0 +1,52 @@
+name: azzurro
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: azzurro
+      POSTGRES_PASSWORD: azzurro
+      POSTGRES_DB: azzurro
+    ports:
+      - "${AZZURRO_DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U azzurro -d azzurro"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Avvio completo in container: docker compose --profile full up --build
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      DATABASE_URL: postgres://azzurro:azzurro@db:5432/azzurro
+      PUBLIC_URL: http://localhost:4000
+      PORTAL_URL: http://localhost:3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        AZZURRO_API_URL: http://api:4000
+    environment:
+      AZZURRO_API_URL: http://api:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

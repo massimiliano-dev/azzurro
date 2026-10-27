@@ -1,0 +1,128 @@
+{
+  "title": "Il nuovo mondo visivo di Azzurro",
+  "question": "Nuova mano: il sorteggio ha assegnato «Azzurri in diretta». Tienilo, scegli un'alternativa o rilancia.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Azzurri in diretta",
+      "kicker": "THE ROLL",
+      "lineage": "Le grafiche TV delle partite della Nazionale e della Serie A: score bug, sovrimpressioni, ticker",
+      "thesis": "Azzurro come gli Azzurri: il tuo cloud raccontato in diretta, con numeri da tabellone, sovrimpressioni che entrano a tendina e un ticker delle richieste.",
+      "palette": ["#2f5bff", "#0b1d51", "#ffffff", "#f6c344", "#19b36b", "#ff3b4e"],
+      "materials": ["pannelli lucidi con angoli tagliati", "tendine diagonali", "fasce colore di squadra", "ticker scorrevole"],
+      "viewport": "Rail blu notte con il menu standard; nella barra in alto uno score bug con la directory attiva e l'orologio; in home i numeri grandi come un tabellone che sale con una tendina diagonale; l'attività recente come sovrimpressioni; in basso le richieste ARM e Graph come ticker in diretta.",
+      "risk": "Se tagli e tendine finiscono su ogni controllo diventa un costume da TV e rallenta il lavoro: restano su intestazioni, numeri, sovrimpressioni e ticker.",
+      "raised": [
+        { "from": "challenger-doujin", "raise": "Le risorse preferite si cerchiano come un percorso da seguire e si ritrovano subito in home." },
+        { "from": "challenger-botanical", "raise": "Prima e dopo alla stessa scala: what-if e anteprime di distribuzione affiancano lo stato attuale e quello futuro, allineati." },
+        { "from": "challenger-timetable", "raise": "Nelle tabelle il rango lo danno peso e maiuscole, non venti misure di testo." },
+        { "from": "challenger-exposure", "raise": "Il carico come densità: più un gruppo di risorse è pieno o costoso, più fitto è il suo motivo nella panoramica." }
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Memphis Milano",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Il gruppo Memphis di Ettore Sottsass, Milano 1981",
+      "thesis": "Il design più giocoso d'Italia: forme geometriche, laminati colorati e scarabocchi che animano un'interfaccia seria.",
+      "palette": ["#2f6bff", "#ff5ca8", "#ffd23f", "#18c29c", "#14161c", "#ffffff"],
+      "materials": ["laminato stampato", "terrazzo", "scarabocchi neri", "forme piene"],
+      "viewport": "Rail blu con un bordo a motivo; i numeri grandi su blocchi di laminato colorato con forme che si muovono; tabelle pulite su bianco.",
+      "risk": "È la mia prima scelta, ma il «Memphis revival» è il look di molte startup dal 2018: rischia di sembrare già visto e di affollare lo schermo."
+    },
+    {
+      "id": "challenger-consumer",
+      "label": "App amichevole",
+      "verdict": "competitive",
+      "lineage": "Le app consumer moderne",
+      "thesis": "Angoli morbidi, etichette scritte da una persona e un solo colore acceso dove si può agire.",
+      "palette": ["#f6f3ee", "#ffffff", "#2f5bff", "#1d1d1f"],
+      "materials": ["schede arrotondate", "molla al tocco"],
+      "viewport": "Schede bianche su fondo tiepido, un solo azzurro per ogni azione possibile.",
+      "case": "Chiara e simpatica come Notion, ma tranquilla: perde sull'animazione molto espressiva che hai chiesto.",
+      "risk": "Gentile ma anonima.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-warm-consumer-app-surface-hero.webp"
+    },
+    {
+      "id": "challenger-airport",
+      "label": "Segnaletica d'aeroporto",
+      "verdict": "competitive",
+      "lineage": "I cartelli gialli degli aeroporti",
+      "thesis": "Ogni scelta come un cartello: solo le opzioni davanti, con frecce e distanze.",
+      "palette": ["#ffd200", "#111111", "#ffffff", "#2f5bff"],
+      "materials": ["bande gialle sospese", "pittogrammi"],
+      "viewport": "Bande gialle fisse che guidano tra sottoscrizioni, gruppi e risorse.",
+      "case": "Orientamento chiarissimo, ma poco giovanile e il giallo ruba l'identità azzurra.",
+      "risk": "Il giallo domina il blu.",
+      "hero": "https://impeccable.style/worlds/cards/wayfinding-cartography-signage-terminal-yellow-wayfinding-hero.webp"
+    },
+    {
+      "id": "challenger-doujin",
+      "label": "Catalogo di fiera",
+      "verdict": "declined",
+      "lineage": "I cataloghi delle fiere del fumetto",
+      "thesis": "Migliaia di miniature numerate in una griglia fitta.",
+      "palette": ["#1a1a1a", "#e9e6df", "#e4572e"],
+      "materials": ["carta da giornale", "biro"],
+      "viewport": "Griglia di miniature con mappa della sala.",
+      "case": "Bianco e nero su carta povera: non è il colore che cerchi.",
+      "kept": "Le risorse preferite cerchiate come un percorso.",
+      "risk": "Troppo fitto e spento.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-doujin-event-catalog-hero.webp"
+    },
+    {
+      "id": "challenger-botanical",
+      "label": "Tavole botaniche",
+      "verdict": "declined",
+      "lineage": "Gli erbari illustrati",
+      "thesis": "La stessa pianta nelle sue stagioni, alla stessa scala.",
+      "palette": ["#f3ead6", "#3f6b3a", "#b8322a", "#7a6a55"],
+      "materials": ["carta crema", "incisione"],
+      "viewport": "Tavole allineate su una base comune.",
+      "case": "Elegante ma lontanissima da un team di sviluppo giovane.",
+      "kept": "Prima e dopo alla stessa scala per what-if e distribuzioni.",
+      "risk": "Polverosa.",
+      "hero": "https://impeccable.style/worlds/cards/editorial-sequence-montage-botanical-folio-season-hero.webp"
+    },
+    {
+      "id": "challenger-timetable",
+      "label": "Orario aereo su vetrini",
+      "verdict": "declined",
+      "lineage": "Gli orari tascabili delle compagnie aeree",
+      "thesis": "Un solo corpo di testo: il rango è peso e maiuscolo.",
+      "palette": ["#d9a520", "#2b2b2b", "#f2ecd9", "#c0392b", "#2e6b45"],
+      "materials": ["vetrini colorati", "banco luminoso"],
+      "viewport": "Vetrini inclinati su un banco giallo.",
+      "case": "Rigorosa ma inclinata e retrò: confonde una console.",
+      "kept": "Rango per peso e maiuscolo nelle tabelle.",
+      "risk": "Inclinazioni scomode da leggere.",
+      "hero": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack-hero.webp"
+    },
+    {
+      "id": "challenger-exposure",
+      "label": "Registro di camera oscura",
+      "verdict": "declined",
+      "lineage": "Le schede di esposizione dei fotografi",
+      "thesis": "Fogli traslucidi sovrapposti, tratteggi che misurano il carico.",
+      "palette": ["#1b1b1b", "#8a8a8a", "#e9e9e9", "#d1349a"],
+      "materials": ["carta da lucido", "tratteggio"],
+      "viewport": "Fogli scorrevoli su una scala di grigi.",
+      "case": "Tecnica e grigia: lontana da Arc, Notion e Figma.",
+      "kept": "Il carico come densità del motivo.",
+      "risk": "Cupa.",
+      "hero": "https://impeccable.style/worlds/cards/operate-b-exposure-record-zone-sheets-hero.webp"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code", "toggle": false },
+  "canon": true,
+  "canonCard": {
+    "label": "Lo standard della categoria",
+    "thesis": "Un portale cloud come quelli che conosci, fatto con la massima cura.",
+    "palette": ["#ffffff", "#f3f5f8", "#0f6cbd", "#242424"],
+    "materials": ["griglia pulita", "pannelli grigi", "icone Fluent"],
+    "viewport": "Barra laterale, intestazioni, tabelle e schede come nel portale Azure.",
+    "risk": "Indistinguibile dal portale Azure, per scelta."
+  },
+  "steer": true
+}

@@ -1,0 +1,120 @@
+{
+  "title": "Il nuovo mondo visivo di Azzurro",
+  "question": "Il sorteggio ha assegnato «Fumetto». Tienilo, scegli un'alternativa o rilancia.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Fumetto",
+      "kicker": "THE ROLL",
+      "lineage": "Il settimanale a fumetti italiano: Topolino, i fumetti da edicola, la stampa in quadricromia",
+      "thesis": "Ogni azione su Azure diventa una vignetta: il portale racconta cosa succede, a colori pieni e con il ritmo di una tavola.",
+      "palette": ["#1f6fff", "#ffd23f", "#ff4f6d", "#2bd18e", "#14161c", "#ffffff"],
+      "materials": ["contorni d'inchiostro da 2px", "retino Ben-Day", "colori piatti di quadricromia", "balloon e didascalie"],
+      "viewport": "Rail e barra superiore azzurre e standard; il saluto in una didascalia gialla con lettering a fumetto; i numeri grandi che entrano con un rimbalzo e un'ombra a retino, un colore per categoria; risorse e attività in vignette con contorno d'inchiostro e gutter bianco; l'assistente risponde in balloon.",
+      "risk": "Può diventare infantile se il lettering a fumetto invade tabelle e moduli: resta su titoli, numeri, balloon e timbri, il resto è un'interfaccia pulita.",
+      "raised": [
+        { "from": "challenger-mascots", "raise": "Ogni categoria di risorsa ha il suo colore pieno, e l'elemento a fuoco fa un piccolo rimbalzo." },
+        { "from": "challenger-labanotation", "raise": "La durata di una richiesta è la sua lunghezza esatta: le vignette del nastro si allargano con i millisecondi." },
+        { "from": "challenger-lexicon", "raise": "Le modifiche si mostrano barrate e sostituite: il valore vecchio cancellato a inchiostro, il nuovo scritto accanto (what-if, tag, PATCH)." },
+        { "from": "challenger-jcard", "raise": "Budget e quote hanno una capienza fissa: la barra è il nastro e non può traboccare." }
+      ],
+      "board": "https://impeccable.style/worlds/cards/pop-culture-shelf-character-goods-catalog.webp"
+    },
+    {
+      "id": "challenger-splitflap",
+      "label": "Tabellone delle partenze",
+      "kicker": "IMPECCABLE’S PICK",
+      "verdict": "competitive",
+      "lineage": "I tabelloni a palette Solari di Udine nelle stazioni",
+      "thesis": "Il portale come tabellone di stazione: le richieste partono, i contatori girano palette per palette.",
+      "palette": ["#141414", "#f4f4f2", "#ffb000", "#9aa3ab", "#2f7bff"],
+      "materials": ["palette nere a fessura", "telaio d'acciaio", "lampade ambra"],
+      "viewport": "Rail standard su acciaio scuro; i contatori della home come cifre a palette che girano; le richieste ARM e Graph come righe di partenza con stato e ritardo.",
+      "case": "Si fonde bene: le richieste sono partenze e i numeri girano davvero. Perde sul «giovanile e colorato» che hai chiesto. Era anche il mio primo candidato.",
+      "risk": "Serio e notturno: lontano da Arc, Notion e Figma.",
+      "hero": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse.webp"
+    },
+    {
+      "id": "challenger-darkconsole",
+      "label": "Console grafite",
+      "verdict": "competitive",
+      "lineage": "Le console scure per sviluppatori",
+      "thesis": "Grafite, linee da un pixel e colori presi dalla sintassi del codice solo per lo stato.",
+      "palette": ["#17191d", "#23262c", "#3b8cff", "#7ee787", "#ffa657"],
+      "materials": ["grafite", "cuciture sottili", "cifre monospaziate"],
+      "viewport": "Pannelli fissi che cambiano contenuto, azzurro come unico accento, azioni distruttive isolate.",
+      "case": "Chiarissima per uno sviluppatore, ma perde sull'aria amichevole e colorata che cerchi.",
+      "risk": "È quello che fanno quasi tutti i prodotti della categoria.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-dark-first-developer-console-hero.webp"
+    },
+    {
+      "id": "challenger-mascots",
+      "label": "Catalogo di mascotte",
+      "verdict": "declined",
+      "lineage": "Cataloghi di personaggi kawaii",
+      "thesis": "Ogni tipo di risorsa come una mascotte con nome e carattere.",
+      "palette": ["#ffd6e0", "#c7ecff", "#fff1b8", "#ffffff"],
+      "materials": ["pastelli piatti", "contorno bianco"],
+      "viewport": "Griglia di mascotte classificate.",
+      "case": "Il pubblico la riconosce come giocosa, ma le mascotte nascondono cosa sono le risorse.",
+      "kept": "Un colore pieno per categoria e il rimbalzo sull'elemento a fuoco.",
+      "risk": "Toglie serietà ai dati veri.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-character-goods-catalog-hero.webp"
+    },
+    {
+      "id": "challenger-labanotation",
+      "label": "Partitura di danza",
+      "verdict": "declined",
+      "lineage": "La notazione Laban",
+      "thesis": "Le azioni come blocchi lunghi quanto la loro durata.",
+      "palette": ["#ffffff", "#111111", "#d9d9d9"],
+      "materials": ["carta da partitura", "blocchi tratteggiati"],
+      "viewport": "Un pentagramma verticale di eventi.",
+      "case": "Rigorosa ma estranea al team e poco chiara come console.",
+      "kept": "La durata come lunghezza esatta delle richieste nel nastro.",
+      "risk": "Ermetica.",
+      "hero": "https://impeccable.style/worlds/cards/notation-diagram-systems-labanotation-hero.webp"
+    },
+    {
+      "id": "challenger-lexicon",
+      "label": "Lessico ottocentesco",
+      "verdict": "declined",
+      "lineage": "Le enciclopedie illustrate",
+      "thesis": "Testo nero a misura fissa, colore solo nelle tavole.",
+      "palette": ["#1a1a1a", "#f2ead8", "#c0392b", "#1f4fa3"],
+      "materials": ["carta crema", "tavole cromolitografiche"],
+      "viewport": "Colonne fitte con parole guida in testa.",
+      "case": "Vecchio e austero: l'opposto di giovanile.",
+      "kept": "Il barrato-e-sostituito per mostrare le modifiche.",
+      "risk": "Polveroso.",
+      "hero": "https://impeccable.style/worlds/cards/rw-lexicon-shoulder-and-plate-hero.webp"
+    },
+    {
+      "id": "challenger-jcard",
+      "label": "Copertina di musicassetta",
+      "verdict": "declined",
+      "lineage": "Le compilation su cassetta",
+      "thesis": "Liste scritte a penna, lato A e lato B, tempi al margine.",
+      "palette": ["#2a4bd7", "#ffffff", "#d62828", "#9e9e9e"],
+      "materials": ["biro blu", "cartoncino rigato"],
+      "viewport": "Un cartoncino piegato con le tracce.",
+      "case": "Simpatica ma la scrittura a mano peggiora la leggibilità dei dati.",
+      "kept": "La capienza fissa: budget e quote come un nastro che non trabocca.",
+      "risk": "Troppo artigianale per una console.",
+      "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-cassette-j-card-hero.webp"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code", "toggle": false },
+  "canon": true,
+  "canonCard": {
+    "label": "Lo standard della categoria",
+    "thesis": "Un portale cloud come quelli che conosci, fatto con la massima cura.",
+    "palette": ["#ffffff", "#f3f5f8", "#0f6cbd", "#242424"],
+    "materials": ["griglia pulita", "pannelli grigi", "icone Fluent"],
+    "viewport": "Barra laterale, intestazioni, tabelle e schede come nel portale Azure.",
+    "risk": "Indistinguibile dal portale Azure, per scelta."
+  },
+  "steer": true
+}

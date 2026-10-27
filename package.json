@@ -1,0 +1,30 @@
+{
+  "name": "azzurro",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Emulatore locale di Azure: ARM, Microsoft Graph ed Entra ID con portale web Next.js",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait db",
+    "dev": "concurrently -n api,web -c blue,cyan \"npm:dev -w server\" \"npm:dev -w web\"",
+    "build": "npm run build -w web",
+    "start": "concurrently -n api,web -c blue,cyan \"npm:start -w server\" \"npm:start -w web\"",
+    "check": "npm run check -w server && npm run check -w web",
+    "test": "npm test -w server",
+    "certs": "bash scripts/certs.sh",
+    "service:install": "bash scripts/service.sh install",
+    "service:update": "bash scripts/service.sh update",
+    "service:uninstall": "bash scripts/service.sh uninstall",
+    "service:status": "bash scripts/service.sh status",
+    "service:logs": "bash scripts/service.sh logs",
+    "package": "bash scripts/package.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

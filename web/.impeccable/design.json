@@ -1,0 +1,890 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T15:05:32+00:00",
+  "title": "Design System: Azzurro",
+  "extensions": {
+    "colorMeta": {
+      "azzurro": {
+        "role": "primary",
+        "displayName": "Azzurri Blue",
+        "canonical": "#2f5bff",
+        "tonalRamp": [
+          "#010037",
+          "#060077",
+          "#1007bf",
+          "#1f41e5",
+          "#4370f7",
+          "#739afb",
+          "#abc3fb",
+          "#e8effe"
+        ],
+        "dark": "#5b80ff"
+      },
+      "azzurro-deep": {
+        "role": "primary",
+        "displayName": "Deep Azzurri",
+        "canonical": "#1d3fd1",
+        "tonalRamp": [
+          "#010037",
+          "#060176",
+          "#0e1cb3",
+          "#2248d9",
+          "#4370f6",
+          "#739afa",
+          "#abc3fb",
+          "#e7efff"
+        ],
+        "dark": "#7a99ff"
+      },
+      "azzurro-soft": {
+        "role": "primary",
+        "displayName": "Azzurri Wash",
+        "canonical": "#e6ecff",
+        "tonalRamp": [
+          "#070a16",
+          "#1f2331",
+          "#3b3f4e",
+          "#585d6d",
+          "#777d8e",
+          "#989eaf",
+          "#bec4d6",
+          "#e9eefe"
+        ],
+        "dark": "#16245a"
+      },
+      "azzurro-soft-2": {
+        "role": "primary",
+        "displayName": "Azzurri Wash Strong",
+        "canonical": "#cdd9ff",
+        "tonalRamp": [
+          "#050821",
+          "#1b223e",
+          "#353e5d",
+          "#525c7d",
+          "#717c9e",
+          "#929dc1",
+          "#b7c3e8",
+          "#e9eeff"
+        ],
+        "dark": "#1f3378"
+      },
+      "azzurro-text": {
+        "role": "primary",
+        "displayName": "Azzurri Link Ink",
+        "canonical": "#2348e0",
+        "tonalRamp": [
+          "#010038",
+          "#060772",
+          "#0f17b7",
+          "#2145dd",
+          "#416ffa",
+          "#7299fd",
+          "#aac3fc",
+          "#e7effe"
+        ],
+        "dark": "#9db4ff"
+      },
+      "notte": {
+        "role": "secondary",
+        "displayName": "Night Blue",
+        "canonical": "#0b1d51",
+        "tonalRamp": [
+          "#010133",
+          "#0c1e53",
+          "#263c73",
+          "#425b95",
+          "#617cb8",
+          "#819ddc",
+          "#aac4fb",
+          "#e7effe"
+        ],
+        "dark": "#050c26"
+      },
+      "notte-2": {
+        "role": "secondary",
+        "displayName": "Night Blue Hover",
+        "canonical": "#13296b",
+        "tonalRamp": [
+          "#010038",
+          "#081b5c",
+          "#213a7d",
+          "#3d5aa0",
+          "#5b7ac4",
+          "#7b9ce8",
+          "#aac4fc",
+          "#e7effe"
+        ]
+      },
+      "notte-3": {
+        "role": "secondary",
+        "displayName": "Night Blue POST",
+        "canonical": "#1c3684",
+        "tonalRamp": [
+          "#010036",
+          "#061664",
+          "#1d3886",
+          "#3958a9",
+          "#5779cd",
+          "#769bf2",
+          "#a9c3ff",
+          "#e7efff"
+        ],
+        "dark": "#3a52a8"
+      },
+      "notte-deep": {
+        "role": "secondary",
+        "displayName": "Deepest Night",
+        "canonical": "#071440",
+        "tonalRamp": [
+          "#01042e",
+          "#10204d",
+          "#2a3d6d",
+          "#475c8e",
+          "#657cb1",
+          "#869dd5",
+          "#aac3fd",
+          "#e7effe"
+        ],
+        "dark": "#030819"
+      },
+      "rosso": {
+        "role": "tertiary",
+        "displayName": "Rosso Card",
+        "canonical": "#ff3b4e",
+        "tonalRamp": [
+          "#210001",
+          "#4c0009",
+          "#7d0018",
+          "#b10027",
+          "#e6173a",
+          "#fa686b",
+          "#feaaa8",
+          "#ffe9e7"
+        ]
+      },
+      "rosso-text": {
+        "role": "tertiary",
+        "displayName": "Rosso Text",
+        "canonical": "#e5243b",
+        "tonalRamp": [
+          "#220000",
+          "#4b0009",
+          "#7b0317",
+          "#af0c27",
+          "#e3213a",
+          "#fe6466",
+          "#fdaba7",
+          "#fee9e7"
+        ],
+        "dark": "#ff5c6c"
+      },
+      "rosso-soft": {
+        "role": "tertiary",
+        "displayName": "Rosso Wash",
+        "canonical": "#ffe6e9",
+        "tonalRamp": [
+          "#150609",
+          "#301e21",
+          "#4d3a3c",
+          "#6c575a",
+          "#8d777a",
+          "#af989b",
+          "#d5bdc0",
+          "#ffe8eb"
+        ],
+        "dark": "#3d1420"
+      },
+      "giallo": {
+        "role": "tertiary",
+        "displayName": "Giallo Card",
+        "canonical": "#ffcc00",
+        "tonalRamp": [
+          "#120a00",
+          "#2e2200",
+          "#4f3d00",
+          "#735a00",
+          "#98790f",
+          "#bf9a18",
+          "#ecbe1c",
+          "#feeec1"
+        ]
+      },
+      "giallo-ink": {
+        "role": "tertiary",
+        "displayName": "Giallo Ink",
+        "canonical": "#7a5c00",
+        "tonalRamp": [
+          "#130900",
+          "#302200",
+          "#503c06",
+          "#74590e",
+          "#98792c",
+          "#ba9a50",
+          "#e1c076",
+          "#feedc8"
+        ],
+        "dark": "#ffd84d"
+      },
+      "giallo-soft": {
+        "role": "tertiary",
+        "displayName": "Giallo Wash",
+        "canonical": "#fff6cc",
+        "tonalRamp": [
+          "#100b00",
+          "#2b2400",
+          "#48401b",
+          "#665e39",
+          "#867e58",
+          "#a89f78",
+          "#cec59c",
+          "#f8efc6"
+        ],
+        "dark": "#352b08"
+      },
+      "oro": {
+        "role": "tertiary",
+        "displayName": "Oro",
+        "canonical": "#f6c344",
+        "tonalRamp": [
+          "#130900",
+          "#302200",
+          "#523c00",
+          "#765900",
+          "#9c7710",
+          "#c49719",
+          "#efbc3b",
+          "#ffedc5"
+        ]
+      },
+      "arancio": {
+        "role": "tertiary",
+        "displayName": "Arancio",
+        "canonical": "#ff8a1f",
+        "tonalRamp": [
+          "#1b0400",
+          "#3b1a00",
+          "#633001",
+          "#8e4805",
+          "#b96317",
+          "#e87f21",
+          "#feb079",
+          "#feeadd"
+        ]
+      },
+      "verde": {
+        "role": "tertiary",
+        "displayName": "Verde Campo",
+        "canonical": "#19b36b",
+        "tonalRamp": [
+          "#001004",
+          "#002d16",
+          "#024d2a",
+          "#087041",
+          "#1d9459",
+          "#28bb72",
+          "#5ce297",
+          "#c7fed9"
+        ]
+      },
+      "verde-text": {
+        "role": "tertiary",
+        "displayName": "Verde Text",
+        "canonical": "#12935a",
+        "tonalRamp": [
+          "#001004",
+          "#002d17",
+          "#004d2c",
+          "#007042",
+          "#15945b",
+          "#47b77c",
+          "#71dea0",
+          "#c5feda"
+        ],
+        "dark": "#3fd38b"
+      },
+      "verde-soft": {
+        "role": "tertiary",
+        "displayName": "Verde Wash",
+        "canonical": "#def7eb",
+        "tonalRamp": [
+          "#000f08",
+          "#152920",
+          "#30453c",
+          "#4e6359",
+          "#6d8379",
+          "#8da59a",
+          "#b3cbbf",
+          "#dcf5e9"
+        ],
+        "dark": "#0d3123"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0c1430",
+        "tonalRamp": [
+          "#040823",
+          "#19223f",
+          "#333e5e",
+          "#505c7e",
+          "#6f7ca0",
+          "#909ec3",
+          "#b5c3ea",
+          "#e8eefe"
+        ]
+      },
+      "ghiaccio": {
+        "role": "neutral",
+        "displayName": "Ghiaccio",
+        "canonical": "#eef2fb",
+        "tonalRamp": [
+          "#090b11",
+          "#21242a",
+          "#3d4047",
+          "#5a5e65",
+          "#7a7d85",
+          "#9b9ea7",
+          "#c0c4cd",
+          "#eaeef7"
+        ],
+        "dark": "#070e29"
+      },
+      "ghiaccio-sunken": {
+        "role": "neutral",
+        "displayName": "Ghiaccio Sunken",
+        "canonical": "#e3e9f7",
+        "tonalRamp": [
+          "#080b14",
+          "#20242e",
+          "#3b404b",
+          "#585e69",
+          "#787d8a",
+          "#999eab",
+          "#bec4d2",
+          "#e8eefc"
+        ],
+        "dark": "#050a1f"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ],
+        "dark": "#0f1a42"
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Surface Recessed",
+        "canonical": "#f6f8fe",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#222428",
+          "#3e4044",
+          "#5c5d62",
+          "#7b7d82",
+          "#9c9ea4",
+          "#c2c4ca",
+          "#eceef4"
+        ],
+        "dark": "#0c1638"
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Surface Hover",
+        "canonical": "#f0f4ff",
+        "tonalRamp": [
+          "#090b12",
+          "#21242c",
+          "#3c4048",
+          "#5a5d67",
+          "#7a7d87",
+          "#9a9ea8",
+          "#c0c4ce",
+          "#eaeef9"
+        ],
+        "dark": "#15235a"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#dfe5f2",
+        "tonalRamp": [
+          "#080b13",
+          "#20242d",
+          "#3b404a",
+          "#595e69",
+          "#787d89",
+          "#999eab",
+          "#bec4d1",
+          "#e8effc"
+        ],
+        "dark": "#1f2f66"
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Control Stroke",
+        "canonical": "#c4cee4",
+        "tonalRamp": [
+          "#050a19",
+          "#1d2434",
+          "#384051",
+          "#555e71",
+          "#747d91",
+          "#959eb3",
+          "#bac4da",
+          "#e7efff"
+        ],
+        "dark": "#2d4185"
+      },
+      "text-2": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "#2c3656",
+        "tonalRamp": [
+          "#040823",
+          "#192240",
+          "#343e5f",
+          "#515c7f",
+          "#707ca1",
+          "#909dc3",
+          "#b5c3eb",
+          "#e8eeff"
+        ],
+        "dark": "#c5cff0"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Text",
+        "canonical": "#5d6787",
+        "tonalRamp": [
+          "#050821",
+          "#1b223d",
+          "#353e5c",
+          "#535c7c",
+          "#727c9d",
+          "#929dc0",
+          "#b7c3e7",
+          "#e9eefe"
+        ],
+        "dark": "#8f9cc8"
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Faint Text",
+        "canonical": "#8f98b3",
+        "tonalRamp": [
+          "#06091c",
+          "#1c2338",
+          "#373f56",
+          "#555d75",
+          "#747c96",
+          "#959eb9",
+          "#bac3e0",
+          "#e8eeff"
+        ],
+        "dark": "#66739f"
+      },
+      "team-containers": {
+        "role": "team",
+        "displayName": "Containers Teal",
+        "canonical": "#10a9c2",
+        "tonalRamp": [
+          "#000e14",
+          "#002a31",
+          "#004854",
+          "#03697a",
+          "#188ca0",
+          "#22b1ca",
+          "#58d8f1",
+          "#d2f6ff"
+        ]
+      },
+      "team-web": {
+        "role": "team",
+        "displayName": "Web Violet",
+        "canonical": "#7a5cff",
+        "tonalRamp": [
+          "#0d0032",
+          "#250068",
+          "#4105a7",
+          "#5c32d6",
+          "#7859fc",
+          "#978ef8",
+          "#bebcfe",
+          "#ecedff"
+        ]
+      },
+      "team-databases": {
+        "role": "team",
+        "displayName": "Databases Magenta",
+        "canonical": "#e0409a",
+        "tonalRamp": [
+          "#20000f",
+          "#46002b",
+          "#74024a",
+          "#a6096c",
+          "#d2308e",
+          "#f959b0",
+          "#fea4ce",
+          "#ffe7f1"
+        ]
+      },
+      "team-networking": {
+        "role": "team",
+        "displayName": "Networking Sky",
+        "canonical": "#1aa3ff",
+        "tonalRamp": [
+          "#000c20",
+          "#002643",
+          "#00436f",
+          "#01629e",
+          "#1583cd",
+          "#35a5fa",
+          "#90cbff",
+          "#e1f1ff"
+        ]
+      },
+      "team-monitor": {
+        "role": "team",
+        "displayName": "Monitor Lime",
+        "canonical": "#7cc22f",
+        "tonalRamp": [
+          "#030f00",
+          "#152b00",
+          "#294a00",
+          "#3f6c00",
+          "#578f11",
+          "#70b51a",
+          "#95dc4f",
+          "#d4feb5"
+        ]
+      },
+      "team-ai": {
+        "role": "team",
+        "displayName": "AI Purple",
+        "canonical": "#b45cff",
+        "tonalRamp": [
+          "#140027",
+          "#340254",
+          "#580a8a",
+          "#7f16c3",
+          "#a046e9",
+          "#bd77ff",
+          "#d5b2fe",
+          "#f3eaff"
+        ]
+      },
+      "team-management": {
+        "role": "team",
+        "displayName": "Management Slate",
+        "canonical": "#6b7593",
+        "tonalRamp": [
+          "#05091f",
+          "#1b223b",
+          "#363e59",
+          "#535d79",
+          "#727c9b",
+          "#939dbd",
+          "#b8c3e4",
+          "#e8eefe"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Home greeting only; italic, width 68%. Login studio headline uses the same voice at 64% width up to 92px."
+      },
+      "scoreboard": {
+        "displayName": "Scoreboard",
+        "purpose": "Scoreboard numerals that count up; italic, width 62%, tabular. Smaller steps for money figures and the draft estimate."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles; width 82%."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and card titles (15.5px in card heads)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All reading text; controls at 13.5px weight 600."
+      },
+      "on-air": {
+        "displayName": "On-air",
+        "purpose": "Italic condensed captions on broadcast graphics: method tags, activity verbs, ticker label (16px uppercase), score bug label, toast titles, stamps, assistant speaker names."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase tracked table column headers; rail group titles at 11px +0.1em."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Martian Mono at 87.5% width for IDs, paths, tags, ticker paths and timings, code and JSON."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 1px 2px rgba(11, 29, 81, 0.05)",
+        "purpose": "Panels, tables, board cells at rest."
+      },
+      {
+        "name": "pop",
+        "value": "0 2px 8px rgba(11, 29, 81, 0.08), 0 22px 50px -14px rgba(11, 29, 81, 0.34)",
+        "purpose": "Floating layers: dropdowns, search results, side panels, modals, toasts, cost tooltip. Dark: 0 2px 8px rgba(0,0,0,0.4), 0 22px 50px -14px rgba(0,0,0,0.75)."
+      },
+      {
+        "name": "stage",
+        "value": "0 24px 48px -28px rgba(11, 29, 81, 0.9)",
+        "purpose": "The scoreboard only."
+      },
+      {
+        "name": "azzurri-glow",
+        "value": "0 10px 20px -12px rgba(47, 91, 255, 0.95)",
+        "purpose": "Primary buttons, active nav link, active tab, page-head icon tile."
+      },
+      {
+        "name": "hover-lift",
+        "value": "0 16px 30px -20px rgba(11, 29, 81, 0.6)",
+        "purpose": "Catalog tiles and favourites on hover, with a 2-3px rise."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The single exponential ease-out for every transition and entrance."
+      },
+      {
+        "name": "spring",
+        "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "purpose": "Only the switch thumb (350ms) and the notification count badge pop-in (400ms)."
+      },
+      {
+        "name": "wipe-in",
+        "value": "420ms var(--ease); clip-path diagonal polygon from the left plus 10px slide",
+        "purpose": "Scoreboard cells, board panels, home cost figures; staggered 60-80ms."
+      },
+      {
+        "name": "curtain",
+        "value": "420ms var(--ease); azzurro slab clipped away diagonally",
+        "purpose": "Page transition behind page-enter (content rises 14px over 500ms)."
+      },
+      {
+        "name": "lower-third",
+        "value": "500-550ms var(--ease); clip-path inset reveal from the left",
+        "purpose": "Toasts, activity rows, assistant replies, draft estimate, login ribbon."
+      },
+      {
+        "name": "ticker-in",
+        "value": "500ms var(--ease); 60px slide from the right with clip reveal",
+        "purpose": "Request chips entering the DIRETTA ticker; duration underline grows 600ms after 200ms."
+      },
+      {
+        "name": "count-up",
+        "value": "900ms, 1 - 2^(-10t)",
+        "purpose": "Scoreboard numerals counting from their previous value; a change flashes a skewed team-colour slab over 1s."
+      },
+      {
+        "name": "grow-x",
+        "value": "700-900ms var(--ease); scaleX from 0",
+        "purpose": "Team stripes, progress fills, cost bars."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce) { animation-duration/transition-duration 0.01ms; iteration-count 1 }",
+        "purpose": "Global rule; curtain and scoreboard sheen hidden; counters jump straight to value."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "480px"
+      },
+      {
+        "name": "narrow",
+        "value": "720px"
+      },
+      {
+        "name": "login-split",
+        "value": "900px"
+      },
+      {
+        "name": "drawer",
+        "value": "960px"
+      },
+      {
+        "name": "board-stack",
+        "value": "1200px"
+      },
+      {
+        "name": "scoreboard-4",
+        "value": "1280px"
+      }
+    ],
+    "brandAssets": {
+      "mark": "web/public/brand/azzurro-mark.svg, azzurro-mark-inverse.svg: open 'A' on #0b3fbf with an #e8a917 crossbar, 3px corner radius. Preserved from the previous world; not retuned to the world's tokens.",
+      "logotype": "Lowercase 'azzurro' in Saira 800 at 75% width, -0.02em, 1.18em."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single action colour: azzurro fill with a coloured glow.",
+      "html": "<button class=\"ds-btn-primary\">Crea una risorsa</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 15px; border-radius: 10px; border: 1px solid #2f5bff; background: #2f5bff; color: #fff; font: 600 13.5px/1 'Saira Variable', 'Saira', sans-serif; cursor: pointer; box-shadow: 0 10px 20px -12px rgba(47, 91, 255, 0.95); transition: background 0.16s, border-color 0.16s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: #1d3fd1; border-color: #1d3fd1; transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(47, 91, 255, 1); } .ds-btn-primary:active { transform: scale(0.97); transition-duration: 0.08s; } .ds-btn-primary:focus-visible { outline: 3px solid rgba(47, 91, 255, 0.34); outline-offset: 2px; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "White desk control with a strong stroke; most actions.",
+      "html": "<button class=\"ds-btn\">Nuovo gruppo di risorse</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 15px; border-radius: 10px; border: 1px solid #c4cee4; background: #fff; color: #0c1430; font: 600 13.5px/1 'Saira Variable', 'Saira', sans-serif; cursor: pointer; transition: background 0.16s, border-color 0.16s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn:hover { background: #f0f4ff; border-color: #cdd9ff; transform: translateY(-1px); } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 3px solid rgba(47, 91, 255, 0.34); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Plain 38px field; azzurro border and halo on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Filtra\" />",
+      "css": ".ds-input { width: 280px; min-height: 38px; border-radius: 10px; border: 1px solid #c4cee4; background: #fff; color: #0c1430; padding: 8px 12px; font: 400 14px/1.5 'Saira Variable', 'Saira', sans-serif; caret-color: #2f5bff; transition: border-color 0.15s, box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: #8f98b3; } .ds-input:focus { outline: none; border-color: #2f5bff; box-shadow: 0 0 0 4px rgba(47, 91, 255, 0.34); }"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link-active",
+      "description": "Night-blue rail; active link is a solid azzurro pill with an oro dot.",
+      "html": "<nav class=\"ds-rail\"><div class=\"ds-rail-title\">Risorse</div><a class=\"ds-nav on\" href=\"#\">Home</a><a class=\"ds-nav\" href=\"#\">Sottoscrizioni</a><a class=\"ds-nav\" href=\"#\">Gruppi di risorse</a></nav>",
+      "css": ".ds-rail { width: 240px; padding: 12px; background: #0b1d51; font-family: 'Saira Variable', 'Saira', sans-serif; } .ds-rail-title { font-size: 11px; font-weight: 700; color: rgba(178, 194, 240, 0.78); padding: 4px 12px 6px; text-transform: uppercase; letter-spacing: 0.1em; } .ds-nav { position: relative; display: flex; padding: 8px 12px; border-radius: 12px; color: rgba(236, 241, 255, 0.86); font-size: 14px; font-weight: 500; text-decoration: none; transition: background 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav:hover { background: rgba(255, 255, 255, 0.08); color: #fff; transform: translateX(3px); } .ds-nav.on { background: #2f5bff; color: #fff; font-weight: 650; box-shadow: 0 8px 20px -10px rgba(47, 91, 255, 0.9); } .ds-nav.on::after { content: ''; position: absolute; right: 10px; top: 50%; margin-top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #f6c344; } .ds-nav:focus-visible { outline: 3px solid rgba(47, 91, 255, 0.5); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Badges",
+      "kind": "chip",
+      "refersTo": "badge-ok",
+      "description": "Referee-card pills with a leading dot: ok, warn, bad, info.",
+      "html": "<span class=\"ds-badge ok\">Succeeded</span> <span class=\"ds-badge warn\">Running</span> <span class=\"ds-badge bad\">Failed</span> <span class=\"ds-badge info\">Info</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: 999px; font: 650 12px/22px 'Saira Variable', 'Saira', sans-serif; } .ds-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; } .ds-badge.ok { color: #12935a; background: #def7eb; } .ds-badge.warn { color: #7a5c00; background: #fff6cc; } .ds-badge.bad { color: #e5243b; background: #ffe6e9; } .ds-badge.info { color: #2348e0; background: #e6ecff; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White 16px-radius panel on the ice ground with a hairline head.",
+      "html": "<section class=\"ds-card\"><div class=\"ds-card-head\"><h2>Risorse modificate di recente</h2><a href=\"#\">Vedi tutte</a></div><div class=\"ds-card-body\">app-ft-azz &middot; App Web &middot; 8 minuti fa</div></section>",
+      "css": ".ds-card { width: 420px; background: #fff; border: 1px solid #dfe5f2; border-radius: 16px; box-shadow: 0 1px 2px rgba(11, 29, 81, 0.05); overflow: hidden; font: 400 14px/1.5 'Saira Variable', 'Saira', sans-serif; color: #0c1430; } .ds-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; min-height: 52px; border-bottom: 1px solid #dfe5f2; } .ds-card-head h2 { flex: 1; margin: 0; font-size: 15.5px; font-weight: 650; } .ds-card-head a { color: #2348e0; font-size: 12.5px; text-decoration: none; } .ds-card-head a:hover { text-decoration: underline; } .ds-card-body { padding: 18px; }"
+    },
+    {
+      "name": "Scoreboard",
+      "kind": "custom",
+      "refersTo": "scoreboard",
+      "description": "Night-blue stage of giant italic condensed numerals with team-colour stripes; running and alert cells take giallo and rosso.",
+      "html": "<section class=\"ds-ledger\"><a class=\"ds-cell\" style=\"--team:#2f5bff\" href=\"#\"><span class=\"l\">Sottoscrizioni</span><span class=\"v\">1</span></a><a class=\"ds-cell\" style=\"--team:#19b36b\" href=\"#\"><span class=\"l\">Risorse</span><span class=\"v\">9</span></a><a class=\"ds-cell running\" style=\"--team:#f6c344\" href=\"#\"><span class=\"l\">Distribuzioni in corso</span><span class=\"v\">2</span></a><a class=\"ds-cell alert\" style=\"--team:#ff3b4e\" href=\"#\"><span class=\"l\">Non riuscite</span><span class=\"v\">1</span></a></section>",
+      "css": ".ds-ledger { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: #0b1d51; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 48px -28px rgba(11, 29, 81, 0.9); font-family: 'Saira Variable', 'Saira', sans-serif; } .ds-cell { position: relative; display: grid; gap: 6px; padding: 18px 20px 16px; color: #fff; text-decoration: none; box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08); transition: background 0.2s; animation: ds-wipe 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-cell::before { content: ''; position: absolute; left: 0; top: 0; width: 100%; height: 5px; background: var(--team); } .ds-cell:hover { background: #13296b; } .ds-cell:focus-visible { outline: 3px solid rgba(47, 91, 255, 0.5); outline-offset: -3px; } .ds-cell .l { font-size: 13px; font-weight: 650; color: rgba(214, 224, 255, 0.86); } .ds-cell .v { font: italic 850 64px/0.88 'Saira Variable', 'Saira', sans-serif; font-stretch: 62%; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-cell.running { background: #ffcc00; color: #0c1430; } .ds-cell.running .l { color: #0c1430; } .ds-cell.alert { background: #ff3b4e; } @keyframes ds-wipe { from { clip-path: polygon(0 0, 0 0, -12% 100%, -12% 100%); opacity: 0.4; transform: translateX(-10px); } to { clip-path: polygon(0 0, 112% 0, 100% 100%, -12% 100%); opacity: 1; transform: none; } } @media (prefers-reduced-motion: reduce) { .ds-cell { animation: none; } }"
+    },
+    {
+      "name": "Score Bug",
+      "kind": "custom",
+      "refersTo": "score-bug-local",
+      "description": "Topbar directory bug: slanted oro (EMULATORE) or rosso (AZURE) label, name, live mono clock.",
+      "html": "<div class=\"ds-topbar\"><button class=\"ds-bug\"><span class=\"tag\">EMULATORE</span><span class=\"n\">Azzurro (emulatore)</span><span class=\"clock\">15:57</span></button> <button class=\"ds-bug real\"><span class=\"tag\">AZURE</span><span class=\"n\">Keynet</span><span class=\"clock\">15:57</span></button></div>",
+      "css": ".ds-topbar { display: flex; gap: 12px; padding: 13px 16px; background: #0b1d51; } .ds-bug { display: inline-flex; align-items: stretch; height: 34px; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer; font-family: 'Saira Variable', 'Saira', sans-serif; transition: background 0.16s; } .ds-bug:hover { background: rgba(255, 255, 255, 0.14); } .ds-bug:focus-visible { outline: 3px solid rgba(91, 128, 255, 0.5); outline-offset: 2px; } .ds-bug .tag { display: grid; place-items: center; padding: 0 16px 0 12px; font: italic 800 13px/1 'Saira Variable', 'Saira', sans-serif; font-stretch: 72%; letter-spacing: 0.06em; background: #f6c344; color: #0c1430; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); } .ds-bug.real .tag { background: #ff3b4e; color: #fff; } .ds-bug .n { display: grid; place-items: center; padding: 0 8px 0 10px; font-weight: 600; font-size: 13px; } .ds-bug .clock { display: grid; grid-auto-flow: column; gap: 6px; place-items: center; padding: 0 10px; background: rgba(0, 0, 0, 0.22); font: 600 11px/1 'Martian Mono Variable', 'Martian Mono', monospace; } .ds-bug .clock::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #ff3b4e; }"
+    },
+    {
+      "name": "Toast as Lower Third",
+      "kind": "custom",
+      "refersTo": "toast-lower-third",
+      "description": "Night-blue lower third led by a trapezoid colour band, revealed from the left.",
+      "html": "<div class=\"ds-toast ok\"><span class=\"band\"></span><div class=\"txt\"><div class=\"t\">Gruppo di risorse creato</div><div class=\"d\">rg-feature-test &middot; westeurope</div></div></div>",
+      "css": ".ds-toast { --team: #2f5bff; display: grid; grid-template-columns: 44px 1fr; width: 420px; background: #0b1d51; color: #fff; border-radius: 4px 14px 14px 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(11, 29, 81, 0.08), 0 22px 50px -14px rgba(11, 29, 81, 0.34); font-family: 'Saira Variable', 'Saira', sans-serif; animation: ds-lower-third 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-toast.ok { --team: #19b36b; } .ds-toast.bad { --team: #ff3b4e; } .ds-toast .band { background: var(--team); clip-path: polygon(0 0, 100% 0, 72% 100%, 0 100%); } .ds-toast .txt { padding: 11px 12px 11px 4px; } .ds-toast .t { font-weight: 700; font-style: italic; font-stretch: 80%; font-size: 16px; } .ds-toast .d { color: rgba(214, 224, 255, 0.84); font-size: 13px; } @keyframes ds-lower-third { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } } @media (prefers-reduced-motion: reduce) { .ds-toast { animation: none; } }"
+    },
+    {
+      "name": "DIRETTA Ticker",
+      "kind": "custom",
+      "refersTo": "ticker",
+      "description": "Bottom request ticker: slanted azzurro label with live dot, chips with slanted method tags and an oro duration underline.",
+      "html": "<div class=\"ds-ticker\"><button class=\"ds-tl\">Diretta <span class=\"c\">4</span></button><button class=\"ds-chip\" style=\"--dur:17px\"><span class=\"m\">GET</span><span class=\"p\">/subscriptions</span><span class=\"s\">200</span><span class=\"t\">29ms</span></button><button class=\"ds-chip\" style=\"--dur:60px\"><span class=\"m put\">PUT</span><span class=\"p\">&hellip;/resourceGroups/demo-rg</span><span class=\"s\">201</span><span class=\"t\">100ms</span></button><button class=\"ds-chip\" style=\"--dur:24px\"><span class=\"m del\">DELETE</span><span class=\"p\">&hellip;/vaults/kv-portal-test</span><span class=\"s err\">409</span><span class=\"t\">40ms</span></button></div>",
+      "css": ".ds-ticker { display: flex; align-items: stretch; gap: 8px; height: 44px; background: #0b1d51; color: #e9eeff; } .ds-tl { display: flex; align-items: center; gap: 8px; padding: 0 26px 0 16px; border: 0; background: #2f5bff; color: #fff; font: italic 800 16px/1 'Saira Variable', 'Saira', sans-serif; font-stretch: 72%; letter-spacing: 0.04em; text-transform: uppercase; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); cursor: pointer; } .ds-tl::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #ff3b4e; box-shadow: 0 0 0 3px rgba(255, 59, 78, 0.3); } .ds-tl:hover { background: #1d3fd1; } .ds-tl .c { font: 700 11px/1 'Martian Mono Variable', 'Martian Mono', monospace; font-style: normal; opacity: 0.85; } .ds-chip { position: relative; align-self: center; display: inline-flex; align-items: center; height: 28px; padding: 0; border: 0; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.07); color: #e9eeff; font: 11px/28px 'Martian Mono Variable', 'Martian Mono', monospace; cursor: pointer; transition: background 0.15s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-chip:hover { background: rgba(255, 255, 255, 0.14); transform: translateY(-2px); } .ds-chip:focus-visible { outline: 3px solid rgba(91, 128, 255, 0.5); outline-offset: 2px; } .ds-chip::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: var(--dur); background: #f6c344; border-radius: 0 3px 3px 0; } .ds-chip .m { min-width: 56px; padding: 0 14px 0 9px; text-align: center; font: italic 800 13px/28px 'Saira Variable', 'Saira', sans-serif; font-stretch: 72%; letter-spacing: 0.03em; color: #fff; background: #2f5bff; clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%); } .ds-chip .m.put { background: #f6c344; color: #0c1430; } .ds-chip .m.del { background: #ff3b4e; } .ds-chip .p { padding: 0 8px; } .ds-chip .s { padding: 0 7px; color: #7ef0b5; font-weight: 700; } .ds-chip .s.err { color: #ff8c98; } .ds-chip .t { padding: 0 9px 0 0; color: rgba(214, 224, 255, 0.66); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Azzurri in diretta",
+    "overview": "The console narrates the developer's cloud the way Italian television narrates a national-team or Serie A match. Night-blue broadcast chrome frames the whole screen: a rail and topbar in deep night blue, a score bug in the topbar naming the active directory (EMULATORE or AZURE) with a live clock, and a DIRETTA ticker along the bottom where every API request runs past as a chip. Inside that frame the working surface is light and friendly. An ice-blue ground carries white panels with soft corners. The controls inside them are ordinary, legible form controls that never perform.\n\nOn-air graphics are reserved for the moments that tell the story. The home screen opens on a full-width scoreboard: giant italic condensed numerals that count up, each cell topped by a team-colour stripe. Changes arrive as lower thirds (toasts, the activity stack, assistant replies) that wipe in from the left with their colour band leading. Requests arrive in the ticker with an ochre underline whose length is the request's duration. Diagonal cuts, clip-path wipes and italic condensed Saira mark something as broadcast graphics; everything else stays upright and calm.\n\nThe world rejects the grey Fluent clone of the Azure portal and the dark neon console. Density is high and full-width, because the users read IDs, JSON and paths beside a terminal.",
+    "keyCharacteristics": [
+      "Night-blue broadcast chrome (rail, topbar, ticker, scoreboard, lower thirds) around a light ice-blue working floor with white rounded panels.",
+      "One action colour, Azzurri blue. Cards (rosso, giallo, verde) are reserved for state, and gold marks writes and highlights.",
+      "Every resource category has a team colour, used on its icon tile and as the scoreboard stripe.",
+      "Saira variable on two registers: heavy italic condensed for the on-air register and normal width for the interface. Martian Mono handles IDs, paths, payloads and timings.",
+      "Motion is a broadcast wipe on one exponential ease. Numbers count up, panels wipe in diagonally, and pages change behind an azzurro curtain."
+    ],
+    "rules": [
+      {
+        "name": "The One Action Colour Rule",
+        "body": "Azzurri blue is the only colour that means \"do this\". Cards never decorate, and gold never means \"click\".",
+        "section": "colors"
+      },
+      {
+        "name": "The Cards Are For State Rule",
+        "body": "Rosso, giallo and verde appear only when something failed or is destructive, is waiting, or succeeded. A panel is never tinted rosso for emphasis.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink On Light Kits Rule",
+        "body": "Oro, giallo, arancio and team-monitor fills always carry ink text, never white.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Registers Rule",
+        "body": "Italic condensed heavy Saira means \"on air\", so it appears only on broadcast graphics and big numbers. Buttons, form labels, table cells and body copy stay upright at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Is Evidence Rule",
+        "body": "Martian Mono is reserved for things the machine said: IDs, paths, HTTP payloads, durations. Prose never uses it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Floor Rule",
+        "body": "Panels are flat at rest. Lift belongs to things that float or that you can press.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Cut Means On Air Rule",
+        "body": "Diagonal cuts and skews belong only to broadcast graphics: the scoreboard, score bug, lower thirds (toasts, activity verbs) and the ticker (its label and its method tags). Buttons, inputs, panels, tabs and badges are never cut. The same method tag inside the request drawer list is a rounded 5px pill, not a cut.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do use azzurro for every primary action and selected state, and nothing else for that job.",
+      "Do put broadcast moments (counts, live events, requests, confirmations) on night blue with italic condensed Saira and a leading colour band.",
+      "Do give each resource category its team colour on its icon tile and scoreboard stripe, with ink text on oro, giallo, arancio and team-monitor.",
+      "Do set IDs, paths, payloads and durations in Martian Mono at 87.5% width with tabular numerals.",
+      "Do animate on the single exponential ease (`cubic-bezier(0.16, 1, 0.3, 1)`). Wipes run 420ms, lower thirds 500 to 550ms, and counters 900ms.",
+      "Do keep `--spring` for the switch thumb and the notification count badge only.",
+      "Do let every motion collapse to instant under reduced motion, including counters, the curtain and the scoreboard sheen.",
+      "Do keep the preserved logo mark (open \"A\" on #0b3fbf with an #e8a917 crossbar) and the lowercase \"azzurro\" logotype (800, 75% width) exactly as shipped."
+    ],
+    "donts": [
+      "Don't cut, skew or italicise buttons, inputs, panels, tabs or badges. Diagonals mean \"on air\".",
+      "Don't use rosso, giallo or verde as decoration or emphasis. They are referee cards for state.",
+      "Don't put white text on oro, giallo, arancio or team-monitor.",
+      "Don't fall back to the grey Fluent look of the Azure portal or to a dark neon console.",
+      "Don't centre content in a narrow container. The board uses the full width.",
+      "Don't add a second easing curve or bouncy motion outside the two `--spring` uses.",
+      "Don't recolour the logo mark to the world's azzurro or oro, and don't use the logo's hexes as UI tokens."
+    ]
+  }
+}

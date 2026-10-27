@@ -1,0 +1,12 @@
+node_modules
+.next
+dist
+.env
+.env.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+certs/
+.azzurro.env
+**/.impeccable/review
+test-results

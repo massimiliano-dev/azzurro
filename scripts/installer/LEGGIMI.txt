@@ -1,0 +1,37 @@
+AZZURRO — emulatore locale di Azure con portale web
+====================================================
+
+INSTALLARE
+1. Fai doppio clic su "Installa Azzurro.command".
+   Se macOS lo blocca: tasto destro sul file → Apri → Apri.
+2. Segui il terminale. Installa, se mancano, Homebrew, Node.js e Docker Desktop
+   (al primo avvio di Docker accetta le condizioni nella sua finestra), avvia il
+   database PostgreSQL in Docker, copia l'app in
+   ~/Library/Application Support/Azzurro e la registra come servizio.
+3. Alla fine si apre http://azzurro.localhost. Utente e password del primo
+   accesso sono mostrati a schermo e salvati in
+   ~/Library/Application Support/Azzurro/primo-accesso.txt
+
+Azzurro parte da solo a ogni accesso al Mac e si riavvia se si chiude.
+
+CONFIGURARE
+Dal portale, come amministratore: Impostazioni → Configurazione del server.
+- Assistente AI: modello locale (Ollama), chiave Anthropic o OpenAI.
+- Accesso Microsoft (Entra ID): tenant, client ID e segreto dell'app registration.
+  L'URI di reindirizzamento da registrare è mostrato nella stessa pagina.
+Le modifiche valgono subito e sono salvate in
+~/Library/Application Support/Azzurro/config.env (leggibile solo dal tuo utente).
+
+AGGIORNARE
+Estrai il nuovo pacchetto e lancia di nuovo "Installa Azzurro.command":
+la configurazione e il database restano.
+
+DISINSTALLARE
+Doppio clic su "Disinstalla Azzurro.command". Chiede separatamente se fermare
+il database, se cancellarlo e se rimuovere i file.
+
+PROBLEMI
+- Log:            ~/Library/Logs/Azzurro/azzurro.log
+- Stato servizio: launchctl print gui/$(id -u)/it.keynet.azzurro
+- Porta 80 occupata: apri il Terminale, scrivi  export AZZURRO_WEB_PORT=8080
+  e trascina dentro "Installa Azzurro.command" (portale su http://azzurro.localhost:8080).
