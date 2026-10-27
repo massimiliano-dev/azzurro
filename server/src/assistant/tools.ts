@@ -78,12 +78,12 @@ export const TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'get_model_pricing',
-    description: 'Per-token prices of AI models deployable on Microsoft Foundry / Azure OpenAI (GPT-4.x/5.x/6, o-series, DeepSeek, Grok, Llama, Mistral, Phi, Cohere, Kimi…) from the Azure Retail Prices API in EUR per 1M tokens, by deployment type (global, datazone, regional) and variant (Batch, Priority, Flex, Long context), plus Claude models on Foundry (Anthropic list price via Azure Marketplace, USD). Filter with query (model name words) to keep the answer short.',
+    description: 'Per-token prices of AI models deployable on Microsoft Foundry / Azure OpenAI (GPT-4.x/5.x/6, o-series, DeepSeek, Grok, Llama, Mistral, Phi, Cohere, Kimi…) from the Azure Retail Prices API in EUR per 1M tokens, by deployment type (global, datazone, regional) and variant (Batch, Priority, Flex, Long context), plus Claude models on Foundry (Anthropic list price via Azure Marketplace, USD). Fields: input, cachedInput (cached INPUT tokens, not output), output. Filter with query (model name words) to keep the answer short.',
     schema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'words of the model name, e.g. "gpt-5.1", "grok", "claude sonnet"' },
-        region: { type: 'string', description: 'Azure region, default swedencentral' },
+        region: { type: 'string', description: 'Azure region name such as swedencentral or italynorth (default swedencentral). Global / Data Zone / Regional is the deployment parameter, not a region.' },
         deployment: { type: 'string', enum: ['global', 'datazone', 'regional'] },
       },
       additionalProperties: false,
