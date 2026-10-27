@@ -113,12 +113,14 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     if (typeof body.autoApprove === 'boolean') conv.autoApprove = body.autoApprove;
     const real = (await sessionDirectory(c))?.directory ?? null;
     const system = await systemFor(p.oid, p, real, body.context);
-    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real };
+    const abort = new AbortController();
+    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real, signal: abort.signal };
     const target = conv;
     c.header('Cache-Control', 'no-cache, no-transform');
     c.header('X-Accel-Buffering', 'no');
     return streamSSE(c, async (stream) => {
       const emit = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) });
+      stream.onAbort(() => abort.abort());
       await emit('conversation', { id: target.id, provider: provider.id, model: provider.model });
       await chat(provider, target, text, ctx, system, emit);
       await emit('done', view(target));
@@ -134,11 +136,13 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     const provider = pick(conv.provider);
     const real = (await sessionDirectory(c))?.directory ?? null;
     const system = await systemFor(p.oid, p, real, body.context);
-    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real };
+    const abort = new AbortController();
+    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real, signal: abort.signal };
     c.header('Cache-Control', 'no-cache, no-transform');
     c.header('X-Accel-Buffering', 'no');
     return streamSSE(c, async (stream) => {
       const emit = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) });
+      stream.onAbort(() => abort.abort());
       await decide(provider, conv, decisions, ctx, system, emit);
       await emit('done', view(conv));
     });

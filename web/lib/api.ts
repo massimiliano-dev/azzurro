@@ -147,6 +147,8 @@ function graphUrl(path: string) {
 export const graph = {
   get: async <T = any>(path: string) => (await request<T>('GET', graphUrl(path))).data,
   list: async <T = any>(path: string) => (await request<{ value: T[] }>('GET', graphUrl(path))).data.value,
+  /** Graph beta: alcune proprietà (es. signInEventTypes dei log di accesso) esistono solo lì */
+  listBeta: async <T = any>(path: string) => (await request<{ value: T[] }>('GET', `/api/graph-beta${path.startsWith('/') ? path : `/${path}`}`)).data.value,
   post: async <T = any>(path: string, body: unknown = {}) => (await request<T>('POST', graphUrl(path), body)).data,
   patch: async (path: string, body: unknown) => { await request('PATCH', graphUrl(path), body); },
   del: async (path: string) => { await request('DELETE', graphUrl(path)); },

@@ -114,7 +114,7 @@ const it = {
   'ai.stop': 'Ferma',
   'ai.send': 'Invia',
   'ai.fallback': 'Risposta completata dal modello di riserva {model}.',
-  'ai.maxSteps': 'Mi sono fermato dopo 12 passaggi. Scrivi «continua» per proseguire.',
+  'ai.interrupted': 'Risposta interrotta: la pagina è stata chiusa o ricaricata. Scrivi di nuovo per continuare.', 'ai.maxSteps': 'Mi sono fermato dopo 12 passaggi. Scrivi «continua» per proseguire.',
   'ai.maxTokens': 'La risposta è stata troncata perché troppo lunga.',
   'ai.refusal': 'Il modello ha rifiutato di continuare questa richiesta.',
   'ai.rejected': 'rifiutata',

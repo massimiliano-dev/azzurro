@@ -120,8 +120,9 @@ async function runCall(ctx: ExecCtx, call: ToolCall, conv: Conversation, emit: E
 /** Continua il ciclo finché il modello termina, chiede conferma o si raggiunge il limite di passi. */
 async function loop(provider: Provider, conv: Conversation, ctx: ExecCtx, system: string, emit: Emit): Promise<void> {
   for (let step = 0; step < MAX_STEPS; step++) {
+    ctx.signal?.throwIfAborted();
     let streamed = '';
-    const { turn, assistantMessage } = await provider.run(conv.history, system, (d) => { streamed += d; void emit('text', { delta: d }); }, (d) => { void emit('reasoning', { delta: d }); });
+    const { turn, assistantMessage } = await provider.run(conv.history, system, (d) => { streamed += d; void emit('text', { delta: d }); }, (d) => { void emit('reasoning', { delta: d }); }, ctx.signal);
     conv.history.push(assistantMessage);
     const text = turn.text || streamed;
     if (text.trim() || turn.reasoning?.trim()) {
@@ -166,12 +167,17 @@ async function loop(provider: Provider, conv: Conversation, ctx: ExecCtx, system
   await emit('notice', n);
 }
 
-async function guarded(conv: Conversation, fn: () => Promise<void>, provider: Provider, emit: Emit) {
+async function guarded(conv: Conversation, fn: () => Promise<void>, provider: Provider, emit: Emit, signal?: AbortSignal) {
   if (busy.has(conv.id)) throw Object.assign(new Error('The assistant is still working on this conversation.'), { code: 'busy' });
   busy.add(conv.id);
   try {
     await fn();
   } catch (e) {
+    if (signal?.aborted) {
+      // il browser ha chiuso la pagina o interrotto: niente errore, la conversazione resta riprendibile
+      conv.display.push({ type: 'notice', tone: 'warn', text: 'interrupted', at: nowIso() });
+      return;
+    }
     const known = provider.describeError(e);
     const n: DisplayItem = { type: 'notice', tone: 'bad', text: known?.message ?? (e as Error).message, at: nowIso() };
     conv.display.push(n);
@@ -190,7 +196,7 @@ export async function chat(provider: Provider, conv: Conversation, text: string,
     conv.display.push(u);
     await saveConversation(conv);
     await loop(provider, conv, ctx, system, emit);
-  }, provider, emit);
+  }, provider, emit, ctx.signal);
 }
 
 async function settle(provider: Provider, conv: Conversation, ctx: ExecCtx, decisions: Record<string, boolean>, emit: Emit) {
@@ -215,5 +221,5 @@ export async function decide(provider: Provider, conv: Conversation, decisions: 
     await settle(provider, conv, ctx, decisions, emit);
     await saveConversation(conv);
     await loop(provider, conv, ctx, system, emit);
-  }, provider, emit);
+  }, provider, emit, ctx.signal);
 }

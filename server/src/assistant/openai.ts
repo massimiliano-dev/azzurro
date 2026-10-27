@@ -45,7 +45,7 @@ function compatible(id: Provider['id'], label: string, modelOf: () => string, ma
   label,
   userMessage: (text) => ({ role: 'user', content: text }) satisfies ChatCompletionMessageParam,
   toolResults: (results) => results.map((r) => ({ role: 'tool', tool_call_id: r.id, content: r.content }) satisfies ChatCompletionMessageParam),
-  async run(history, system, onText, onReasoning) {
+  async run(history, system, onText, onReasoning, signal) {
     client ??= make();
     const model = modelOf();
     const stream = await client.chat.completions.create({
@@ -54,7 +54,7 @@ function compatible(id: Provider['id'], label: string, modelOf: () => string, ma
       tools,
       tool_choice: 'auto',
       stream: true,
-    });
+    }, { signal });
     let text = '';
     let reasoning = '';
     let finish: string | null = null;

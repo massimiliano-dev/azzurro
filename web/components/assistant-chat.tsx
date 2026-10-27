@@ -230,7 +230,7 @@ function Row({ it, pending, onDecide, busy }: { it: Item; pending: string[]; onD
     );
   }
   if (it.type === 'notice') {
-    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
+    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text === 'interrupted' ? t('ai.interrupted') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
     return <div className="ai-row notice"><Notice tone={it.tone}>{msg}</Notice></div>;
   }
   const isPending = it.status === 'pending' && pending.includes(it.id);

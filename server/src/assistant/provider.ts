@@ -21,6 +21,6 @@ export interface Provider {
   label: string;
   userMessage(text: string): unknown;
   toolResults(results: { id: string; content: string; isError: boolean }[]): unknown[];
-  run(history: unknown[], system: string, onText: (delta: string) => void, onReasoning?: (delta: string) => void): Promise<{ turn: Turn; assistantMessage: unknown }>;
+  run(history: unknown[], system: string, onText: (delta: string) => void, onReasoning?: (delta: string) => void, signal?: AbortSignal): Promise<{ turn: Turn; assistantMessage: unknown }>;
   describeError(err: unknown): { code: string; message: string } | undefined;
 }

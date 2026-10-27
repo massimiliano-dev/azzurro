@@ -112,7 +112,7 @@ const en: Dict = {
   'ai.stop': 'Stop',
   'ai.send': 'Send',
   'ai.fallback': 'Response completed by the fallback model {model}.',
-  'ai.maxSteps': 'I stopped after 12 steps. Type “continue” to go on.',
+  'ai.interrupted': 'Answer interrupted: the page was closed or reloaded. Write again to continue.', 'ai.maxSteps': 'I stopped after 12 steps. Type “continue” to go on.',
   'ai.maxTokens': 'The response was cut off because it was too long.',
   'ai.refusal': 'The model declined to continue this request.',
   'ai.rejected': 'rejected',

@@ -31,7 +31,7 @@ export const claude: Provider = {
     role: 'user',
     content: results.map((r): BetaToolResultBlockParam => ({ type: 'tool_result', tool_use_id: r.id, content: r.content, is_error: r.isError || undefined })),
   } satisfies BetaMessageParam],
-  async run(history, system, onText, onReasoning) {
+  async run(history, system, onText, onReasoning, signal) {
     client ??= new Anthropic();
     let jsonRetries = 0;
     for (;;) {
@@ -47,7 +47,7 @@ export const claude: Provider = {
         // se i classificatori di sicurezza rifiutano, Anthropic riesegue la richiesta su un modello di riserva
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
-      });
+      }, { signal });
       let reasoning = '';
       stream.on('text', (delta) => onText(delta));
       stream.on('thinking', (delta) => { reasoning += delta; onReasoning?.(delta); });

@@ -203,6 +203,8 @@ export interface ExecCtx {
   userId: string;
   /** directory Azure reale attiva: ogni scrittura chiede conferma, i costi sono quelli veri */
   real?: { tenantId: string; name: string } | null;
+  /** si interrompe quando il browser chiude la connessione: il modello smette di generare */
+  signal?: AbortSignal;
 }
 
 async function call(ctx: ExecCtx, method: string, url: string, body?: unknown): Promise<{ status: number; json: unknown; ms: number }> {

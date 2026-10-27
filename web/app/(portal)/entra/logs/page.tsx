@@ -15,7 +15,7 @@ export default function LogsPage() {
   const [tab, setTab] = useTab('signins');
   const [kind, setKind] = useState<'interactiveUser' | 'nonInteractiveUser' | 'servicePrincipal'>('interactiveUser');
   const [detail, setDetail] = useState<any>(null);
-  const signins = useAsync(() => graph.list<any>(`/auditLogs/signIns?$top=500&$filter=${encodeURIComponent(`signInEventTypes/any(t: t eq '${kind}')`)}`), [kind], { enabled: tab === 'signins' });
+  const signins = useAsync(() => graph.listBeta<any>(`/auditLogs/signIns?$top=500&$filter=${encodeURIComponent(`signInEventTypes/any(t: t eq '${kind}')`)}`), [kind], { enabled: tab === 'signins' });
   const audits = useAsync(() => graph.list<any>('/auditLogs/directoryAudits?$top=500'), [], { enabled: tab === 'audits' });
   const forbidden = (signins.error as any)?.status === 403 || (audits.error as any)?.status === 403;
   return (
