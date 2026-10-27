@@ -69,7 +69,63 @@ async function baseSystem(userId: string, principal: any, real: Directory | null
   });
 }
 
-const view = (c: Conversation) => ({ id: c.id, title: c.title, provider: c.provider, autoApprove: c.autoApprove, createdAt: c.createdAt, updatedAt: c.updatedAt, display: c.display, pending: c.pending ? c.pending.awaiting : [] });
+/**
+ * Esecuzioni in corso, indipendenti dalla connessione: chiudere il pannello o ricaricare la pagina
+ * non ferma l'assistente; il browser si riaggancia e riceve lo stato attuale più gli eventi dal vivo.
+ * Solo "Ferma" (POST .../stop) interrompe il modello.
+ */
+interface RunEvent { event: string; data: unknown }
+interface Run { conv: Conversation; userId: string; events: RunEvent[]; listeners: Set<() => void>; done: boolean; abort: AbortController; thinking: string; draft: string }
+const runs = new Map<string, Run>();
+const running = (id: string) => { const r = runs.get(id); return !!r && !r.done; };
+
+function startRun(conv: Conversation, userId: string, work: (emit: (event: string, data: unknown) => Promise<void>, signal: AbortSignal) => Promise<void>): Run {
+  if (running(conv.id)) throw new HttpError(409, 'busy', 'The assistant is still working on this conversation.');
+  const run: Run = { conv, userId, events: [], listeners: new Set(), done: false, abort: new AbortController(), thinking: '', draft: '' };
+  runs.set(conv.id, run);
+  const emit = async (event: string, data: unknown) => {
+    if (event === 'reasoning') run.thinking += (data as { delta: string }).delta;
+    else if (event === 'text') run.draft += (data as { delta: string }).delta;
+    else if (event === 'message' || event === 'tool') { run.thinking = ''; run.draft = ''; }
+    run.events.push({ event, data });
+    for (const l of run.listeners) l();
+  };
+  // parte al giro successivo, così chi ha avviato l'esecuzione è già in ascolto
+  setImmediate(() => {
+    void work(emit, run.abort.signal)
+      .catch(async (e) => { await emit('error', { code: 'error', message: (e as Error).message }); })
+      .finally(() => {
+        run.done = true;
+        for (const l of run.listeners) l();
+        setTimeout(() => { if (runs.get(conv.id) === run) runs.delete(conv.id); }, 60_000);
+      });
+  });
+  return run;
+}
+
+/** Inoltra un'esecuzione come SSE dall'evento `from`; chiudere la connessione smette solo di ascoltare. */
+function pipe(c: any, run: Run, from: number, first?: RunEvent): Response {
+  c.header('Cache-Control', 'no-cache, no-transform');
+  c.header('X-Accel-Buffering', 'no');
+  return streamSSE(c, async (stream) => {
+    let i = from;
+    let chain: Promise<unknown> = first ? stream.writeSSE({ event: first.event, data: JSON.stringify(first.data) }) : Promise.resolve();
+    await new Promise<void>((resolve) => {
+      const flush = () => {
+        while (i < run.events.length) {
+          const e = run.events[i++];
+          chain = chain.then(() => stream.writeSSE({ event: e.event, data: JSON.stringify(e.data) }));
+        }
+        if (run.done) { run.listeners.delete(flush); void chain.then(() => resolve()); }
+      };
+      run.listeners.add(flush);
+      stream.onAbort(() => { run.listeners.delete(flush); resolve(); });
+      flush();
+    });
+  });
+}
+
+const view = (c: Conversation) => ({ id: c.id, title: c.title, provider: c.provider, autoApprove: c.autoApprove, createdAt: c.createdAt, updatedAt: c.updatedAt, display: c.display, pending: c.pending ? c.pending.awaiting : [], running: running(c.id) });
 
 export function assistantRoutes(app: Hono<AppEnv>): void {
   app.use('/_portal/assistant/*', async (_c, next) => { await probeLocal(); await next(); });
@@ -85,18 +141,38 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
   app.get('/_portal/assistant/conversations', async (c) => {
     const p = c.get('principal');
     const list = await store.list<Conversation>('assistantConversation', { parent: p.oid });
-    return c.json({ value: list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 50).map((x) => ({ id: x.id, title: x.title, provider: x.provider, updatedAt: x.updatedAt, pending: !!x.pending })) });
+    return c.json({ value: list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 50).map((x) => ({ id: x.id, title: x.title, provider: x.provider, updatedAt: x.updatedAt, pending: !!x.pending, running: running(x.id) })) });
   });
 
   app.get('/_portal/assistant/conversations/:id', async (c) => {
-    const conv = await loadConversation(c.get('principal').oid, c.req.param('id'));
+    const id = c.req.param('id');
+    const live = runs.get(id);
+    if (live && !live.done && live.userId === c.get('principal').oid) return c.json(view(live.conv));
+    const conv = await loadConversation(c.get('principal').oid, id);
     if (!conv) throw new HttpError(404, 'not_found', 'Conversation not found.');
     return c.json(view(conv));
   });
 
+  /** Riaggancio a un'esecuzione in corso: prima lo stato attuale (snapshot), poi gli eventi dal vivo. */
+  app.get('/_portal/assistant/conversations/:id/stream', (c) => {
+    const run = runs.get(c.req.param('id'));
+    if (!run || run.done || run.userId !== c.get('principal').oid) return c.body(null, 204);
+    const snapshot = { ...view(run.conv), thinking: run.thinking, draft: run.draft };
+    return pipe(c, run, run.events.length, { event: 'snapshot', data: snapshot });
+  });
+
+  app.post('/_portal/assistant/conversations/:id/stop', (c) => {
+    const run = runs.get(c.req.param('id'));
+    if (run && !run.done && run.userId === c.get('principal').oid) run.abort.abort('user');
+    return c.body(null, 204);
+  });
+
   app.delete('/_portal/assistant/conversations/:id', async (c) => {
     const conv = await loadConversation(c.get('principal').oid, c.req.param('id'));
-    if (conv) await store.remove('assistantConversation', conv.id);
+    if (conv) {
+      runs.get(conv.id)?.abort.abort('user');
+      await store.remove('assistantConversation', conv.id);
+    }
     return c.body(null, 204);
   });
 
@@ -113,18 +189,14 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     if (typeof body.autoApprove === 'boolean') conv.autoApprove = body.autoApprove;
     const real = (await sessionDirectory(c))?.directory ?? null;
     const system = await systemFor(p.oid, p, real, body.context);
-    const abort = new AbortController();
-    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real, signal: abort.signal };
+    const cookie = c.req.header('cookie') ?? '';
     const target = conv;
-    c.header('Cache-Control', 'no-cache, no-transform');
-    c.header('X-Accel-Buffering', 'no');
-    return streamSSE(c, async (stream) => {
-      const emit = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) });
-      stream.onAbort(() => abort.abort());
+    const run = startRun(target, p.oid, async (emit, signal) => {
       await emit('conversation', { id: target.id, provider: provider.id, model: provider.model });
-      await chat(provider, target, text, ctx, system, emit);
+      await chat(provider, target, text, { app, cookie, userId: p.oid, real, signal }, system, emit);
       await emit('done', view(target));
     });
+    return pipe(c, run, 0);
   });
 
   app.post('/_portal/assistant/conversations/:id/decide', async (c) => {
@@ -136,15 +208,11 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     const provider = pick(conv.provider);
     const real = (await sessionDirectory(c))?.directory ?? null;
     const system = await systemFor(p.oid, p, real, body.context);
-    const abort = new AbortController();
-    const ctx = { app, cookie: c.req.header('cookie') ?? '', userId: p.oid, real, signal: abort.signal };
-    c.header('Cache-Control', 'no-cache, no-transform');
-    c.header('X-Accel-Buffering', 'no');
-    return streamSSE(c, async (stream) => {
-      const emit = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) });
-      stream.onAbort(() => abort.abort());
-      await decide(provider, conv, decisions, ctx, system, emit);
+    const cookie = c.req.header('cookie') ?? '';
+    const run = startRun(conv, p.oid, async (emit, signal) => {
+      await decide(provider, conv, decisions, { app, cookie, userId: p.oid, real, signal }, system, emit);
       await emit('done', view(conv));
     });
+    return pipe(c, run, 0);
   });
 }

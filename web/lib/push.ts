@@ -39,6 +39,28 @@ export async function subscribePush(): Promise<PushState> {
   return 'subscribed';
 }
 
+/**
+ * A ogni apertura del portale: se le notifiche sono consentite, l'iscrizione di questo browser
+ * viene (ri)associata all'utente connesso. Senza, dopo un cambio di account (login locale →
+ * Microsoft) le notifiche desktop finivano all'altro utente; se la chiave VAPID del server è
+ * cambiata (database ricreato) l'iscrizione vecchia non riceve più nulla e va rifatta.
+ */
+export async function syncPush(): Promise<void> {
+  if (!pushSupported() || Notification.permission !== 'granted') return;
+  const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
+  await navigator.serviceWorker.ready;
+  const { publicKey } = await portal.get<{ publicKey: string }>('/push/vapid');
+  const key = urlBase64ToUint8Array(publicKey);
+  let sub = await reg.pushManager.getSubscription();
+  const current = sub?.options.applicationServerKey ? new Uint8Array(sub.options.applicationServerKey) : null;
+  if (sub && current && (current.length !== key.length || current.some((b, i) => b !== key[i]))) {
+    await sub.unsubscribe();
+    sub = null;
+  }
+  sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  await portal.post('/push/subscribe', { subscription: sub.toJSON() }, { noRedirect: true });
+}
+
 export async function unsubscribePush(): Promise<PushState> {
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();

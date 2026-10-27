@@ -13,7 +13,10 @@ import { actionResource, deleteResource, getResource, headResource, listResource
 import { bindArmRequest, deleteDeployment, deploymentAction, getDeployment, listDeployments, listOperations, operationStatus, putDeployment } from './deployments.ts';
 import { buildId, parseArmPath, type ArmPath } from './path.ts';
 import { typeDef } from './catalog.ts';
+import { accountModels } from './aimodels.ts';
 import { authorize } from './context.ts';
+import { diagnosticCategories, metricDefinitions } from './monitoring.ts';
+import { listRecordSets } from './network.ts';
 
 const API_VERSION = /^\d{4}-\d{2}-\d{2}(-[a-z]+)?$/i;
 const WRITE = new Set(['PUT', 'PATCH', 'DELETE', 'POST']);
@@ -196,6 +199,15 @@ async function routeRes(ctx: ArmCtx, method: string, p: Res, q: URLSearchParams,
     }
   }
 
+  // ---- Azure Monitor sulla risorsa: categorie di diagnostica e definizioni delle metriche ----
+  if (ns === 'microsoft.insights' && tl === 1 && (t0 === 'diagnosticsettingscategories' || t0 === 'metricdefinitions') && scopeKind(scope) === 'resource') {
+    if (method !== 'GET') throw armError(405, 'MethodNotAllowed', 'The requested method is not allowed.');
+    const res = await loadResource(ctx, scope);
+    if (!res) throw armError(404, 'ResourceNotFound', `The Resource '${scope}' was not found.`);
+    await authorize(ctx, `${res.type}/read`, res.id);
+    return ok(t0 === 'metricdefinitions' ? metricDefinitions(res) : diagnosticCategories(res, p.names[0]));
+  }
+
   // ---- azioni a livello di provider ----
   if (tl === 1 && n === 0) {
     if (method === 'POST') return providers(ctx, p.sub, p.ns, method, p.types[0], body);
@@ -241,6 +253,27 @@ async function routeRes(ctx: ArmCtx, method: string, p: Res, q: URLSearchParams,
     }
   }
 
+  // ---- azioni con nome nel percorso: chiavi di Azure AI Search ----
+  if (ns === 'microsoft.search' && p.types[0]?.toLowerCase() === 'searchservices' && tl === 2 && n === 2) {
+    const op = p.types[1].toLowerCase();
+    const parent = resInfo({ scope, ns: p.ns, types: ['searchServices'], names: [p.names[0]] });
+    if (op === 'createquerykey' && method === 'POST') return actionResource(ctx, parent, 'createQueryKey', { _name: p.names[1] });
+    if (op === 'deletequerykey' && method === 'DELETE') return actionResource(ctx, parent, 'deleteQueryKey', { _name: p.names[1] });
+    if (op === 'regenerateadminkey' && method === 'POST') return actionResource(ctx, parent, 'regenerateAdminKey', { _name: p.names[1] });
+  }
+
+  // ---- impostazioni delle app Web statiche: lettura con listAppSettings / listFunctionAppSettings ----
+  if (ns === 'microsoft.web' && p.types[0]?.toLowerCase() === 'staticsites' && tl === 2 && n === 1 && method === 'POST' && /^list(function)?appsettings$/i.test(p.types[1])) {
+    const siteId = buildId(scope, p.ns, ['staticSites'], [p.names[0]]);
+    const site = await loadResource(ctx, siteId);
+    if (!site) return getResource(ctx, resInfo({ scope, ns: p.ns, types: ['staticSites'], names: [p.names[0]] }));
+    await authorize(ctx, `Microsoft.Web/staticSites/${p.types[1]}/action`, siteId);
+    const which = /function/i.test(p.types[1]) ? 'functionappsettings' : 'appsettings';
+    const cfg = await loadResource(ctx, `${siteId}/config/${which}`);
+    const { provisioningState: _ps, ...settings } = cfg?.properties ?? {};
+    return ok({ id: `${siteId}/config/${which}`, name: which, type: 'Microsoft.Web/staticSites/config', location: site.location, properties: settings });
+  }
+
   // ---- risorse generiche ----
   if (tl === n) {
     const info = resInfo(p);
@@ -262,6 +295,10 @@ async function routeRes(ctx: ArmCtx, method: string, p: Res, q: URLSearchParams,
       if (!rec) return getResource(ctx, parent);
       await authorize(ctx, `${parent.type}/read`, parent.id);
       if (last.toLowerCase() === 'instanceview' && parent.type === 'Microsoft.Compute/virtualMachines') return ok(vmInstanceView(rec));
+      if (/^(recordsets|all)$/i.test(last) && /^Microsoft\.Network\/(privateDnsZones|dnsZones)$/i.test(parent.type)) {
+        return ok({ value: await Promise.all((await listRecordSets(parent.id)).map((r) => viewResource(ctx, r))) });
+      }
+      if (last.toLowerCase() === 'models' && parent.type === 'Microsoft.CognitiveServices/accounts') return ok({ value: accountModels(rec.kind) });
       if (last.toLowerCase() === 'analyzecustomhostname' && parent.type === 'Microsoft.Web/sites') {
         const hostName = q.get('hostName') ?? '';
         if (!hostName) throw armError(400, 'BadRequest', "The parameter 'hostName' is required.");

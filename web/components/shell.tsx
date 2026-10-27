@@ -11,6 +11,7 @@ import { useI18n, type Locale, type MessageKey } from '@/i18n';
 import { Logo } from './logo';
 import { TableSorter } from './tablesort';
 import { AssistantDock } from './assistant-dock';
+import { syncPush } from '@/lib/push';
 import { switchDirectory, useDirectory } from '@/lib/directory';
 import { clearHistory, recordVisit, useHistoryList } from '@/lib/history';
 import { Avatar } from './ui';
@@ -366,6 +367,8 @@ function UserMenu() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  // iscrizione push di questo browser sempre legata all'utente connesso
+  useEffect(() => { void syncPush().catch((e) => console.warn('[push] sincronizzazione non riuscita', e)); }, []);
   const { t } = useI18n();
   const pathname = usePathname();
   const { session } = useSession();

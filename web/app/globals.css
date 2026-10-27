@@ -1105,3 +1105,12 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
   .topbar-actions .btn.ghost { padding-inline: 6px; }
 }
 @media (max-width: 380px) { .topbar .brand .logotype { display: none; } }
+.ai-dock[hidden] { display: none; }
+/* risposta in corso a pannello chiuso: il pulsante lo dice e pulsa piano */
+.ai-fab.busy { background: var(--notte); }
+.ai-fab.busy svg { animation: ai-spin 2.4s linear infinite; }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ai-fab.busy svg { animation: none; } }
+.notif-help { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+.notif-help summary { cursor: pointer; font-weight: 600; }
+.notif-help ol { margin: 10px 0 2px; padding-left: 20px; display: grid; gap: 6px; }

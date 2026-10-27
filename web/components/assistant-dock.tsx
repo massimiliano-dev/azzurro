@@ -24,6 +24,12 @@ export function AssistantDock() {
   const { t } = useI18n();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // resta montato dopo la prima apertura: chiudere il pannello non interrompe la risposta in corso
+  const [mounted, setMounted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (open) setMounted(true); }, [open]);
+  // riaggancio dopo un ricaricamento: se c'era una conversazione nel pannello, si monta in silenzio
+  useEffect(() => { try { if (localStorage.getItem('azzurro:dock-conversation')) setMounted(true); } catch { /* niente */ } }, []);
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setOpen((o) => !o); }
@@ -36,13 +42,13 @@ export function AssistantDock() {
   return (
     <>
       {!open && (
-        <button type="button" className="ai-fab" onClick={() => setOpen(true)} aria-label={t('ai.dock')} title={`${t('ai.dock')} (⌘J)`}>
-          <Sparkles size={20} aria-hidden /><span>{t('ai.dockShort')}</span>
+        <button type="button" className={`ai-fab ${busy ? 'busy' : ''}`} onClick={() => setOpen(true)} aria-label={busy ? `${t('ai.dock')}: ${t('ai.running')}` : t('ai.dock')} title={`${t('ai.dock')} (⌘J)`}>
+          <Sparkles size={20} aria-hidden /><span>{busy ? t('ai.running') : t('ai.dockShort')}</span>
         </button>
       )}
-      {open && (
-        <aside className="ai-dock" aria-label={t('ai.title')}>
-          <AssistantChat mode="dock" context={pageContext} onClose={() => setOpen(false)} />
+      {mounted && (
+        <aside className="ai-dock" aria-label={t('ai.title')} hidden={!open}>
+          <AssistantChat mode="dock" context={pageContext} onClose={() => setOpen(false)} onBusy={setBusy} />
         </aside>
       )}
     </>

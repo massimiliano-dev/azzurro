@@ -13,12 +13,15 @@ import { useFavorites } from '@/lib/favorites';
 import { ResourceCosts } from '@/components/pricing';
 import { VaultSecrets } from '@/components/vault';
 import { useServiceTabs } from '@/components/blades';
+import { DiagnosticSettings, MetricAlerts, supportsDiagnostics, supportsMetricAlerts } from '@/components/blades/diagnostics';
 import { JsonEditor, PageHeader, Tabs, TagEditor, Toolbar, useTab } from '@/components/page';
 import { Badge, Button, Card, CodeBlock, Empty, ErrorNotice, Field, IdText, Input, KV, Notice, SecretValue, Skeleton, Tags } from '@/components/ui';
 import { Panel, useConfirm, useToast } from '@/components/overlay';
 import { DataTable } from '@/components/table';
 import { ResourceIcon, StateBadge } from '@/components/resource';
 
+/** schede di servizio che mostrano già chiavi e segreti: la scheda generica sarebbe un doppione */
+const KEY_TABS = new Set(['connect', 'access', 'accesskeys', 'endpoint', 'searchkeys', 'connkeys', 'secrets']);
 const LIST_ACTIONS = ['listKeys', 'listConnectionStrings', 'listCredentials', 'listAdminKeys', 'listQueryKeys', 'sharedKeys', 'listSecrets', 'listClusterUserCredential', 'readonlykeys'];
 const POWER_ACTIONS = ['start', 'stop', 'restart', 'powerOff', 'deallocate'];
 const HIDDEN_PROPS = new Set(['provisioningState']);
@@ -169,9 +172,11 @@ export default function ResourcePage() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { key: 'overview', label: t('common.overview') },
         ...svcTabs.map((s) => ({ key: s.key, label: s.label })),
-        ...(listActions.length ? [{ key: 'keys', label: t('res.keys') }] : []),
+        ...(listActions.length && !svcTabs.some((s) => KEY_TABS.has(s.key)) ? [{ key: 'keys', label: t('res.keys') }] : []),
         ...(childTypes.length ? [{ key: 'children', label: t('res.children') }] : []),
         ...(info.type?.toLowerCase() === 'microsoft.keyvault/vaults' ? [{ key: 'secrets', label: t('kv.tab') }] : []),
+        ...(supportsDiagnostics(info.type) ? [{ key: 'diagnostics', label: locale === 'it' ? 'Impostazioni di diagnostica' : 'Diagnostic settings' }] : []),
+        ...(supportsMetricAlerts(info.type) ? [{ key: 'alerts', label: locale === 'it' ? 'Avvisi' : 'Alerts' }] : []),
         { key: 'costs', label: t('pricing.tab') },
         { key: 'json', label: t('common.json') },
         { key: 'activity', label: t('nav.activity') },
@@ -236,6 +241,8 @@ export default function ResourcePage() {
       )}
       {svcTabs.find((s) => s.key === tab)?.render()}
       {tab === 'secrets' && <VaultSecrets vaultId={id} />}
+      {tab === 'diagnostics' && r && <DiagnosticSettings id={id} r={r} />}
+      {tab === 'alerts' && r && <MetricAlerts id={id} r={r} />}
       {tab === 'costs' && <ResourceCosts id={id} type={info.type} apiVersion={apiVersion} />}
       {tab === 'json' && (r ? <CodeBlock value={r} maxHeight={1200} /> : <Skeleton />)}
       {tab === 'activity' && (

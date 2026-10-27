@@ -12,6 +12,7 @@ import {
 import { normalizeLocation, LOCATIONS } from './locations.ts';
 import { buildId, idParts, parseArmPath, rgId } from './path.ts';
 import { can } from './rbac.ts';
+import { beforeDelete as netBeforeDelete, beforeWrite as netBeforeWrite, decorate as netDecorate, implicitAfterCreate } from './network.ts';
 
 export interface ResPath {
   scope: string;
@@ -133,6 +134,7 @@ export async function viewResource(ctx: ArmCtx, rec: any): Promise<any> {
     out.properties ??= {};
     out.properties[ic.prop] = await Promise.all(kids.map((k) => viewResource(ctx, k)));
   }
+  await netDecorate(ctx, rec, out);
   const expand = (ctx.expand ?? '').toLowerCase();
   if (expand.includes('createdtime')) out.createdTime = rec._created ?? null;
   if (expand.includes('changedtime')) out.changedTime = rec._changed ?? null;
@@ -532,6 +534,7 @@ async function runPostHooks(ctx: ArmCtx, info: ResInfo, rec: any, created: boole
     const dbId = `${rec.id}/databases/default`;
     if (!(await store.get('resource', dbId))) await internalPut(ctx, dbId, { properties: {} }, '2025-07-01');
   }
+  for (const [id, body, v] of implicitAfterCreate(rec, created)) await internalPut(ctx, id, body, v);
 }
 
 async function runDeleteHooks(ctx: ArmCtx, rec: any) {
@@ -646,6 +649,7 @@ export async function putResource(ctx: ArmCtx, info: ResInfo, body: any, apiVers
     if (Array.isArray(body.properties?.[ic.prop])) inline.push({ type: ic.type, items: body.properties[ic.prop] });
     delete rec.properties[ic.prop];
   }
+  await netBeforeWrite(ctx, info, rec, created ? null : existing, inline);
   await runHooks(ctx, info, rec, existing, created);
   await persist(ctx, info, rec);
   if (!ctx.dryRun) await runPostHooks(ctx, info, rec, created);
@@ -713,6 +717,7 @@ export async function patchResource(ctx: ArmCtx, info: ResInfo, body: any, apiVe
   }
   const rec = buildRecord(ctx, info, merged, existing, info.parentId ? await loadResource(ctx, info.parentId) : null, apiVersion);
   for (const ic of info.def?.inlineChildren ?? []) delete rec.properties[ic.prop];
+  await netBeforeWrite(ctx, info, rec, existing, []);
   await runHooks(ctx, info, rec, existing, false);
   await persist(ctx, info, rec);
   if (!ctx.dryRun) await runPostHooks(ctx, info, rec, false);
@@ -725,6 +730,7 @@ export async function deleteResource(ctx: ArmCtx, info: ResInfo): Promise<ArmRes
   if (!existing) return { status: 204 };
   await authorize(ctx, `${info.type}/delete`, info.id);
   await checkLocks(ctx, info.id, 'delete');
+  await netBeforeDelete(ctx, existing);
   if (info.def?.hooks?.includes('akspool')) {
     const cluster = await store.get('resource', info.parentId!);
     const others = (cluster?.properties?.agentPoolProfiles ?? []).filter((p: any) => String(p.name).toLowerCase() !== existing.name.toLowerCase());

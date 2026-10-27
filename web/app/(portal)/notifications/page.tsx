@@ -51,8 +51,19 @@ export default function NotificationsPage() {
             <div className="row wrap">
               {state === 'subscribed' && <Badge tone="ok"><BellRing size={12} />{t('notif.enabledHere')}</Badge>}
               <Button variant={state === 'subscribed' ? 'default' : 'primary'} icon={state === 'subscribed' ? BellOff : BellRing} loading={busy} onClick={toggle}>{state === 'subscribed' ? t('notif.disable') : t('notif.enable')}</Button>
-              <Button icon={Send} onClick={async () => { try { const r = await portal.post<any>('/push/test'); toast.ok(t('notif.testSent', { n: r.devices })); await list.reload(); } catch (e) { toast.error(e); } }}>{t('notif.test')}</Button>
+              <Button icon={Send} onClick={async () => { try { const r = await portal.post<any>('/push/test'); if (r.devices) toast.ok(t('notif.testSent', { n: r.devices })); else toast.error(t('notif.testNone')); await list.reload(); } catch (e) { toast.error(e); } }}>{t('notif.test')}</Button>
             </div>
+          )}
+          {state === 'subscribed' && (
+            <details className="notif-help mt-16">
+              <summary>{t('notif.helpTitle')}</summary>
+              <ol>
+                <li>{t('notif.help1')}</li>
+                <li>{t('notif.help2')}</li>
+                <li>{t('notif.help3')}</li>
+                <li>{t('notif.help4')}</li>
+              </ol>
+            </details>
           )}
           <h3 className="mt-24 mb-16">{t('notif.devices')}</h3>
           {devices.data?.value.length ? (

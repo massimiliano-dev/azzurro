@@ -130,6 +130,8 @@ async function loop(provider: Provider, conv: Conversation, ctx: ExecCtx, system
       conv.display.push(item);
       await emit('message', item);
     }
+    // fermato a metà: quel che è arrivato resta, poi la nota "fermato"
+    ctx.signal?.throwIfAborted();
     if (turn.stop === 'refusal') {
       const n: DisplayItem = { type: 'notice', tone: 'warn', text: turn.refusal ? `refusal: ${turn.refusal}` : 'refusal', at: nowIso() };
       conv.display.push(n);
@@ -174,8 +176,10 @@ async function guarded(conv: Conversation, fn: () => Promise<void>, provider: Pr
     await fn();
   } catch (e) {
     if (signal?.aborted) {
-      // il browser ha chiuso la pagina o interrotto: niente errore, la conversazione resta riprendibile
-      conv.display.push({ type: 'notice', tone: 'warn', text: 'interrupted', at: nowIso() });
+      // fermato dall'utente: niente errore, la conversazione resta riprendibile
+      const n: DisplayItem = { type: 'notice', tone: 'warn', text: 'stopped', at: nowIso() };
+      conv.display.push(n);
+      await emit('notice', n);
       return;
     }
     const known = provider.describeError(e);

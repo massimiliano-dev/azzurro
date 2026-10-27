@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, ChevronRight, MessageSquarePlus, Sparkles, Square, Trash2, X } from 'lucide-react';
 import { portal } from '@/lib/api';
-import { postSSE } from '@/lib/sse';
+import { getSSE, postSSE } from '@/lib/sse';
 import { invalidateAll } from '@/lib/cache';
 import { useAsync } from '@/lib/hooks';
 import { useI18n, type MessageKey } from '@/i18n';
@@ -22,7 +22,7 @@ const SUGGESTIONS: MessageKey[] = ['ai.s1', 'ai.s2', 'ai.s3', 'ai.s4'];
 const DOCK_SUGGESTIONS: MessageKey[] = ['ai.c1', 'ai.c2', 'ai.c3'];
 const TOOL_LABEL: Record<string, MessageKey> = { arm_request: 'ai.tool.arm', graph_request: 'ai.tool.graph', query_costs: 'ai.tool.costs', get_pricing: 'ai.tool.pricing', estimate_resource: 'ai.tool.estimate', get_resource_type: 'ai.tool.type' };
 
-export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'page' | 'dock'; context?: () => Record<string, unknown>; onClose?: () => void }) {
+export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mode?: 'page' | 'dock'; context?: () => Record<string, unknown>; onClose?: () => void; onBusy?: (busy: boolean) => void }) {
   const { t, fmtRelative } = useI18n();
   const toast = useToast();
   const status = useAsync(() => portal.get<any>('/assistant/status'), []);
@@ -54,6 +54,7 @@ export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'pag
     try { if (convId) localStorage.setItem(DOCK_KEY, convId); else localStorage.removeItem(DOCK_KEY); } catch { /* niente */ }
   }, [mode, convId]);
   useEffect(() => { end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [items, draft]);
+  useEffect(() => { onBusy?.(busy); }, [busy, onBusy]);
 
   const open = useCallback(async (id: string | null) => {
     abort.current?.abort();
@@ -65,10 +66,13 @@ export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'pag
     setPending(c.pending);
     setProvider(c.provider);
     setAuto(c.autoApprove);
+    // ancora in corso sul server (pannello richiuso, pagina ricaricata): ci si riaggancia
+    if (c.running) void attachRef.current(id);
   }, []);
 
   const onEvent = useCallback((event: string, data: any) => {
     if (event === 'conversation') setConvId(data.id);
+    else if (event === 'snapshot') { setItems(data.display); setPending(data.pending); setThinking(data.thinking ?? ''); setDraft(data.draft ?? ''); }
     else if (event === 'reasoning') setThinking((d) => d + data.delta);
     else if (event === 'text') setDraft((d) => d + data.delta);
     else if (event === 'message') { setDraft(''); setThinking(''); setItems((xs) => [...xs, data]); }
@@ -98,6 +102,16 @@ export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'pag
       setThinking('');
       list.reload();
     }
+  };
+
+  const attach = (id: string) => run((signal) => getSSE(`/api/portal/assistant/conversations/${id}/stream`, onEvent, signal));
+  const attachRef = useRef(attach);
+  attachRef.current = attach;
+
+  /** Ferma davvero l'assistente sul server, non solo l'ascolto in questa pagina. */
+  const stop = () => {
+    if (convId) void portal.post(`/assistant/conversations/${convId}/stop`, {}).catch(() => undefined);
+    else abort.current?.abort();
   };
 
   const send = (msg?: string) => {
@@ -172,7 +186,7 @@ export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'pag
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} aria-label={t('ai.placeholder')} />
             {busy
-              ? <Button type="button" icon={Square} onClick={() => abort.current?.abort()}>{t('ai.stop')}</Button>
+              ? <Button type="button" icon={Square} onClick={stop}>{t('ai.stop')}</Button>
               : <Button type="submit" variant="primary" icon={ArrowUp} disabled={!text.trim() || !provider}>{t('ai.send')}</Button>}
           </form>
         </section>
@@ -204,7 +218,7 @@ export function AssistantChat({ mode = 'page', context, onClose }: { mode?: 'pag
             <div key={c.id} className={`ai-conv ${c.id === convId ? 'on' : ''}`}>
               <button type="button" onClick={() => open(c.id)}>
                 <span className="t">{c.title}</span>
-                <span className="small muted">{c.provider === 'openai' ? 'GPT' : c.provider === 'local' ? t('ai.local') : 'Claude'} · {fmtRelative(c.updatedAt)}{c.pending ? ` · ${t('ai.waiting')}` : ''}</span>
+                <span className="small muted">{c.provider === 'openai' ? 'GPT' : c.provider === 'local' ? t('ai.local') : 'Claude'} · {fmtRelative(c.updatedAt)}{c.running ? ` · ${t('ai.running')}` : c.pending ? ` · ${t('ai.waiting')}` : ''}</span>
               </button>
               <button type="button" className="del" aria-label={t('common.delete')} onClick={async () => { await portal.del(`/assistant/conversations/${c.id}`); if (c.id === convId) open(null); list.reload(); }}><Trash2 size={14} /></button>
             </div>
@@ -230,7 +244,7 @@ function Row({ it, pending, onDecide, busy }: { it: Item; pending: string[]; onD
     );
   }
   if (it.type === 'notice') {
-    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text === 'interrupted' ? t('ai.interrupted') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
+    const msg = it.text === 'max_steps' ? t('ai.maxSteps') : it.text === 'max_tokens' ? t('ai.maxTokens') : it.text === 'stopped' ? t('ai.stopped') : it.text.startsWith('refusal') ? t('ai.refusal') : it.text;
     return <div className="ai-row notice"><Notice tone={it.tone}>{msg}</Notice></div>;
   }
   const isPending = it.status === 'pending' && pending.includes(it.id);

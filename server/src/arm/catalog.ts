@@ -6,6 +6,7 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { accountKey, deterministicIp, randomToken, uniqueString, uuid } from '../ids.ts';
 import { HttpError } from '../errors.ts';
+import { checkDeployment } from './aimodels.ts';
 
 export type Category = 'compute' | 'containers' | 'web' | 'storage' | 'databases' | 'networking' | 'identity' | 'security' | 'integration' | 'monitor' | 'ai' | 'management';
 export type Lbl = { it: string; en: string };
@@ -184,6 +185,31 @@ function sshPublicKey(): { publicKey: string; privateKey: string } {
   };
 }
 
+/** SignalR / Web PubSub: chiavi e unità di scala valide per piano. */
+const SIGNALR_ACTIONS: TypeDef['actions'] = {
+  listKeys: (r) => ({ primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey, primaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.primaryKey};Version=1.0;`, secondaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.secondaryKey};Version=1.0;` }),
+  regenerateKey: (r, c) => {
+    const t = String(c.body?.keyType ?? 'Primary').toLowerCase();
+    if (t === 'salt') { c.save(); return null; }
+    if (t !== 'primary' && t !== 'secondary') throw Object.assign(new Error("keyType must be 'Primary', 'Secondary' or 'Salt'."), { status: 400, code: 'InvalidRequestParameter' });
+    r._secrets[`${t}Key`] = accountKey(32);
+    c.save();
+    return SIGNALR_ACTIONS!.listKeys(r, c);
+  },
+};
+const SIGNALR_UNITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+function signalrScale(r: any) {
+  const name = String(r.sku?.name ?? 'Free_F1');
+  r.sku.tier = name.startsWith('Free') ? 'Free' : name.startsWith('Premium') ? 'Premium' : 'Standard';
+  r.sku.capacity = Number(r.sku.capacity ?? 1);
+  if (r.sku.tier === 'Free' && r.sku.capacity !== 1) throw new HttpError(400, 'InvalidRequestParameter', 'The Free tier supports only 1 unit.');
+  if (name === 'Premium_P2' ? r.sku.capacity < 100 || r.sku.capacity > 1000 || r.sku.capacity % 100 !== 0 : !SIGNALR_UNITS.includes(r.sku.capacity)) throw new HttpError(400, 'InvalidRequestParameter', `The unit count ${r.sku.capacity} is not valid for ${name}.`);
+}
+/** Chiavi di query di Azure AI Search (la chiave creata con il servizio non ha nome). */
+function searchQueryKeys(r: any): { name: string | null; key: string }[] {
+  return r._secrets.queryKeys ?? (r._secrets.queryKey ? [{ name: null, key: r._secrets.queryKey }] : []);
+}
+
 export const TYPES: TypeDef[] = [
   // ---------------- Storage ----------------
   {
@@ -223,7 +249,20 @@ export const TYPES: TypeDef[] = [
         c.save();
         return TYPES_BY_TYPE.get('microsoft.storage/storageaccounts')!.actions!.listKeys(r, c);
       },
-      listAccountSas: () => ({ accountSasToken: `sv=2022-11-02&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2030-01-01T00:00:00Z&spr=https&sig=${encodeURIComponent(accountKey(32))}` }),
+      listAccountSas: (r, c) => {
+        if (r.properties.allowSharedKeyAccess === false) throw Object.assign(new Error('Key based authentication is not permitted on this storage account.'), { status: 403, code: 'KeyBasedAuthenticationNotPermitted' });
+        const b = c.body ?? {};
+        for (const k of ['signedServices', 'signedResourceTypes', 'signedPermission', 'signedExpiry']) {
+          if (!b[k]) throw Object.assign(new Error(`The parameter '${k}' is required.`), { status: 400, code: 'InvalidValuesForRequestParameters' });
+        }
+        const iso = (v: string) => new Date(v).toISOString().replace(/\.\d{3}Z$/, 'Z');
+        if (Number.isNaN(Date.parse(b.signedExpiry))) throw Object.assign(new Error('signedExpiry is not a valid date.'), { status: 400, code: 'InvalidValuesForRequestParameters' });
+        const parts = [`sv=2022-11-02`, `ss=${b.signedServices}`, `srt=${b.signedResourceTypes}`, `sp=${b.signedPermission}`, `se=${encodeURIComponent(iso(b.signedExpiry))}`];
+        if (b.signedStart) parts.push(`st=${encodeURIComponent(iso(b.signedStart))}`);
+        if (b.signedIp) parts.push(`sip=${b.signedIp}`);
+        parts.push(`spr=${b.signedProtocol ?? 'https,http'}`, `sig=${encodeURIComponent(accountKey(32))}`);
+        return { accountSasToken: parts.join('&') };
+      },
       listServiceSas: () => ({ serviceSasToken: `sv=2022-11-02&sr=c&sp=rl&se=2030-01-01T00:00:00Z&spr=https&sig=${encodeURIComponent(accountKey(32))}` }),
     },
     ui: {
@@ -250,7 +289,24 @@ export const TYPES: TypeDef[] = [
   { type: 'Microsoft.Storage/storageAccounts/fileServices/shares', label: lbl('Condivisione file', 'File share'), category: 'storage', apiVersions: V('2023-05-01', '2023-01-01', '2022-09-01'), defaults: defaults({ 'properties.shareQuota': 5120, 'properties.accessTier': 'TransactionOptimized', 'properties.enabledProtocols': 'SMB' }), computed: (r, c) => Object.assign(r.properties, { lastModifiedTime: c.now, leaseStatus: 'unlocked', leaseState: 'available' }), ui: { hidden: true } },
   { type: 'Microsoft.Storage/storageAccounts/queueServices/queues', label: lbl('Coda', 'Queue'), category: 'storage', apiVersions: V('2023-05-01', '2023-01-01'), defaults: defaults({ 'properties.metadata': {} }), computed: (r) => { r.properties.approximateMessageCount = 0; }, ui: { hidden: true } },
   { type: 'Microsoft.Storage/storageAccounts/tableServices/tables', label: lbl('Tabella', 'Table'), category: 'storage', apiVersions: V('2023-05-01', '2023-01-01'), defaults: defaults({ properties: {} }), computed: (r, c) => { r.properties.tableName = c.name; }, ui: { hidden: true } },
-  { type: 'Microsoft.Storage/storageAccounts/managementPolicies', label: lbl('Criteri di gestione', 'Management policy'), category: 'storage', apiVersions: V('2023-05-01', '2023-01-01'), computed: (r, c) => { r.properties.lastModifiedTime = c.now; }, ui: { hidden: true } },
+  {
+    type: 'Microsoft.Storage/storageAccounts/managementPolicies', label: lbl('Criteri di gestione', 'Management policy'), category: 'storage', apiVersions: V('2023-05-01', '2023-01-01'),
+    nameRule: { pattern: /^default$/, code: 'InvalidManagementPolicyName', message: "The management policy name must be 'default'." },
+    computed: (r, c) => {
+      const rules = r.properties?.policy?.rules;
+      if (!Array.isArray(rules) || rules.length === 0) throw new HttpError(400, 'InvalidManagementPolicyRules', 'The management policy must contain at least one rule.');
+      const names = new Set<string>();
+      for (const rule of rules) {
+        if (!rule?.name || !/^[a-zA-Z0-9]{1,256}$/.test(rule.name)) throw new HttpError(400, 'InvalidManagementPolicyRules', `Rule name '${rule?.name ?? ''}' must be alphanumeric.`);
+        if (names.has(rule.name.toLowerCase())) throw new HttpError(400, 'InvalidManagementPolicyRules', `Rule name '${rule.name}' is duplicated.`);
+        names.add(rule.name.toLowerCase());
+        rule.type ??= 'Lifecycle';
+        rule.enabled ??= true;
+      }
+      r.properties.lastModifiedTime = c.now;
+    },
+    ui: { hidden: true },
+  },
 
   // ---------------- Key Vault ----------------
   {
@@ -261,8 +317,19 @@ export const TYPES: TypeDef[] = [
       'properties.tenantId': c.tenantId, 'properties.sku': { family: 'A', name: 'standard' }, 'properties.sku.family': 'A', 'properties.accessPolicies': [],
       'properties.enabledForDeployment': false, 'properties.enabledForDiskEncryption': false, 'properties.enabledForTemplateDeployment': false,
       'properties.enableSoftDelete': true, 'properties.softDeleteRetentionInDays': 90, 'properties.enableRbacAuthorization': true, 'properties.publicNetworkAccess': 'Enabled',
+      'properties.networkAcls': { bypass: 'AzureServices', defaultAction: 'Allow', ipRules: [], virtualNetworkRules: [] },
     })(b),
     computed: (r, c) => {
+      const before = c.existing?.properties;
+      if (before?.enablePurgeProtection === true && r.properties.enablePurgeProtection !== true) throw new HttpError(400, 'BadRequest', 'The property "enablePurgeProtection" cannot be set to false. Enabling the purge protection for a vault is an irreversible action.');
+      if (before?.enableSoftDelete !== false && r.properties.enableSoftDelete === false) throw new HttpError(400, 'BadRequest', 'The property "enableSoftDelete" cannot be set to false. Enabling the soft delete for a vault is an irreversible action.');
+      if (r.properties.enablePurgeProtection === false) delete r.properties.enablePurgeProtection;
+      const days = Number(r.properties.softDeleteRetentionInDays ?? 90);
+      if (before && Number(before.softDeleteRetentionInDays ?? 90) !== days) throw new HttpError(400, 'BadRequest', 'The property "softDeleteRetentionInDays" cannot be changed once the vault is created.');
+      if (!Number.isInteger(days) || days < 7 || days > 90) throw new HttpError(400, 'BadRequest', 'softDeleteRetentionInDays must be between 7 and 90.');
+      for (const ip of r.properties.networkAcls?.ipRules ?? []) {
+        if (!/^\d{1,3}(\.\d{1,3}){3}(\/\d{1,2})?$/.test(String(ip?.value ?? ''))) throw new HttpError(400, 'BadRequest', `Invalid IP address or range '${ip?.value ?? ''}' in networkAcls.ipRules.`);
+      }
       r.properties.vaultUri = `https://${lower(c.name)}.vault.azure.net/`;
       r.properties.hsmPoolResourceId = null;
     },
@@ -292,11 +359,26 @@ export const TYPES: TypeDef[] = [
   },
   {
     type: 'Microsoft.KeyVault/vaults/keys', label: lbl('Chiave', 'Key'), category: 'security', apiVersions: V('2023-07-01', '2023-02-01', '2022-07-01'),
-    defaults: defaults({ 'properties.kty': 'RSA', 'properties.keySize': 2048, 'properties.keyOps': ['encrypt', 'decrypt', 'sign', 'verify', 'wrapKey', 'unwrapKey'], 'properties.attributes': { enabled: true } }),
+    nameRule: { pattern: /^[a-zA-Z0-9-]{1,127}$/, code: 'BadParameter', message: 'Key names can only contain alphanumeric characters and dashes.' },
+    defaults: (b) => {
+      const ec = /^EC/.test(String(b?.properties?.kty ?? ''));
+      defaults({ 'properties.kty': 'RSA', 'properties.attributes': { enabled: true } })(b);
+      if (ec) setDefault(b, 'properties.curveName', 'P-256');
+      else setDefault(b, 'properties.keySize', 2048);
+      setDefault(b, 'properties.keyOps', ec ? ['sign', 'verify'] : ['encrypt', 'decrypt', 'sign', 'verify', 'wrapKey', 'unwrapKey']);
+    },
     computed: (r, c) => {
+      // come Azure: un PUT su una chiave esistente non la modifica (Create If Not Exist)
+      if (c.existing?.properties?.keyUriWithVersion) { r.properties = { ...c.existing.properties, attributes: { ...c.existing.properties.attributes, ...(r.properties.attributes?.enabled !== undefined ? { enabled: r.properties.attributes.enabled } : {}) } }; return; }
+      const p = r.properties;
+      if (!['RSA', 'RSA-HSM', 'EC', 'EC-HSM'].includes(p.kty)) throw new HttpError(400, 'BadParameter', `The key type '${p.kty}' is not supported.`);
+      if (/^RSA/.test(p.kty) && ![2048, 3072, 4096].includes(Number(p.keySize))) throw new HttpError(400, 'BadParameter', 'RSA key size must be 2048, 3072 or 4096.');
+      if (/^EC/.test(p.kty) && !['P-256', 'P-256K', 'P-384', 'P-521'].includes(p.curveName)) throw new HttpError(400, 'BadParameter', `The curve '${p.curveName}' is not supported.`);
       const vault = lower(c.names[0]);
-      r.properties.keyUri = `https://${vault}.vault.azure.net/keys/${c.name}`;
-      r.properties.keyUriWithVersion = `${r.properties.keyUri}/${randomToken(16).replace(/[-_]/g, 'b').slice(0, 32)}`;
+      const now = Math.floor(Date.now() / 1000);
+      p.keyUri = `https://${vault}.vault.azure.net/keys/${c.name}`;
+      p.keyUriWithVersion = `${p.keyUri}/${randomToken(16).replace(/[-_]/g, 'b').slice(0, 32)}`;
+      p.attributes = { enabled: true, ...p.attributes, created: now, updated: now, recoveryLevel: 'Recoverable+Purgeable', exportable: false };
     },
     ui: { hidden: true },
   },
@@ -417,6 +499,30 @@ export const TYPES: TypeDef[] = [
     secrets: () => ({ apiKey: randomToken(48) }),
     actions: { listSecrets: (r, c) => ({ id: c.id + '/secrets', name: 'secrets', properties: { apiKey: r._secrets.apiKey } }) },
     ui: { icon: 'web', fields: [f('sku.name', 'Piano', 'Plan', 'select', { options: ['Free', 'Standard'], default: 'Free' })] },
+  },
+  {
+    type: 'Microsoft.Web/staticSites/customDomains', label: lbl('Dominio personalizzato', 'Custom domain'), category: 'web', apiVersions: V('2023-12-01', '2023-01-01', '2022-09-01'),
+    nameRule: { pattern: /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i, code: 'BadRequest', message: 'The custom domain name is not valid.' },
+    defaults: defaults({ 'properties.validationMethod': 'cname-delegation' }),
+    computed: (r, c) => {
+      const txt = String(r.properties.validationMethod).toLowerCase() === 'dns-txt-token';
+      r.properties.domainName = lower(c.name);
+      r.properties.createdOn = c.existing?.properties?.createdOn ?? c.now;
+      r.properties.validationToken = txt ? (c.existing?.properties?.validationToken ?? randomToken(24).replace(/[-_]/g, 'x')) : undefined;
+      r.properties.status = txt ? (c.existing?.properties?.status ?? 'Validating') : 'Ready';
+      r.properties.errorMessage = null;
+    },
+    ui: { hidden: true },
+  },
+  {
+    type: 'Microsoft.Web/staticSites/config', label: lbl('Impostazioni dell\'app statica', 'Static Web App settings'), category: 'web', apiVersions: V('2023-12-01', '2023-01-01', '2022-09-01'),
+    nameRule: { pattern: /^(appsettings|functionappsettings)$/i, code: 'BadRequest', message: "Only 'appsettings' and 'functionappsettings' are supported." },
+    computed: (r) => {
+      for (const [k, v] of Object.entries(r.properties ?? {})) {
+        if (typeof v !== 'string') throw new HttpError(400, 'BadRequest', `The value of app setting '${k}' must be a string.`);
+      }
+    },
+    ui: { hidden: true },
   },
 
   // ---------------- SQL ----------------
@@ -872,17 +978,17 @@ export const TYPES: TypeDef[] = [
   {
     type: 'Microsoft.SignalRService/signalR', label: lbl('SignalR', 'SignalR'), category: 'integration', apiVersions: V('2024-03-01', '2023-02-01', '2022-02-01'), hooks: ['identity'],
     defaults: defaults({ sku: { name: 'Free_F1', tier: 'Free', capacity: 1 }, kind: 'SignalR' }),
-    computed: (r, c) => Object.assign(r.properties, { hostName: `${lower(c.name)}.service.signalr.net`, externalIP: deterministicIp(c.id, '20'), publicPort: 443, serverPort: 443, version: '1.0' }),
+    computed: (r, c) => { signalrScale(r); Object.assign(r.properties, { hostName: `${lower(c.name)}.service.signalr.net`, externalIP: deterministicIp(c.id, '20'), publicPort: 443, serverPort: 443, version: '1.0' }); },
     secrets: () => ({ primaryKey: accountKey(32), secondaryKey: accountKey(32) }),
-    actions: { listKeys: (r) => ({ primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey, primaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.primaryKey};Version=1.0;`, secondaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.secondaryKey};Version=1.0;` }) },
+    actions: SIGNALR_ACTIONS,
     ui: { icon: 'signalr', fields: [f('sku.name', 'Piano', 'Tier', 'select', { options: ['Free_F1', 'Standard_S1', 'Premium_P1'], default: 'Free_F1' })] },
   },
   {
     type: 'Microsoft.SignalRService/webPubSub', label: lbl('Web PubSub', 'Web PubSub'), category: 'integration', apiVersions: V('2024-03-01', '2023-02-01'), hooks: ['identity'],
     defaults: defaults({ sku: { name: 'Free_F1', tier: 'Free', capacity: 1 } }),
-    computed: (r, c) => Object.assign(r.properties, { hostName: `${lower(c.name)}.webpubsub.azure.com`, externalIP: deterministicIp(c.id, '20'), publicPort: 443, serverPort: 443, version: '1.0' }),
+    computed: (r, c) => { signalrScale(r); Object.assign(r.properties, { hostName: `${lower(c.name)}.webpubsub.azure.com`, externalIP: deterministicIp(c.id, '20'), publicPort: 443, serverPort: 443, version: '1.0' }); },
     secrets: () => ({ primaryKey: accountKey(32), secondaryKey: accountKey(32) }),
-    actions: { listKeys: (r) => ({ primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey, primaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.primaryKey};Version=1.0;`, secondaryConnectionString: `Endpoint=https://${r.properties.hostName};AccessKey=${r._secrets.secondaryKey};Version=1.0;` }) },
+    actions: SIGNALR_ACTIONS,
   },
   {
     type: 'Microsoft.ApiManagement/service', label: lbl('Gestione API', 'API Management'), category: 'integration', apiVersions: V('2023-09-01-preview', '2023-05-01-preview', '2022-08-01', '2021-08-01'), hooks: ['identity'],
@@ -955,8 +1061,11 @@ export const TYPES: TypeDef[] = [
   // ---------------- AI ----------------
   {
     type: 'Microsoft.CognitiveServices/accounts', label: lbl('Servizi di Azure AI', 'Azure AI services'), category: 'ai', apiVersions: V('2025-06-01', '2025-04-01-preview', '2024-10-01', '2024-06-01-preview', '2023-10-01-preview', '2023-05-01', '2022-12-01'), hooks: ['identity'],
-    defaults: (b, c) => defaults({ kind: 'OpenAI', sku: { name: 'S0' }, 'properties.publicNetworkAccess': 'Enabled', 'properties.customSubDomainName': lower(c.name) })(b),
+    defaults: (b, c) => defaults({ kind: 'OpenAI', sku: { name: 'S0' }, 'properties.publicNetworkAccess': 'Enabled', 'properties.customSubDomainName': lower(c.name), 'properties.disableLocalAuth': false, 'properties.networkAcls': { defaultAction: 'Allow', ipRules: [], virtualNetworkRules: [] } })(b),
     computed: (r, c) => {
+      for (const ip of r.properties.networkAcls?.ipRules ?? []) {
+        if (!/^\d{1,3}(\.\d{1,3}){3}(\/\d{1,2})?$/.test(String(ip?.value ?? ''))) throw new HttpError(400, 'BadRequest', `Invalid IP address or range '${ip?.value ?? ''}'.`);
+      }
       const sub = lower(r.properties.customSubDomainName ?? c.name);
       const openai = String(r.kind).toLowerCase() === 'openai';
       r.properties.endpoint = openai ? `https://${sub}.openai.azure.com/` : `https://${sub}.cognitiveservices.azure.com/`;
@@ -971,7 +1080,19 @@ export const TYPES: TypeDef[] = [
       r.properties.internalId = c.existing?.properties?.internalId ?? uniqueString(c.id) + uniqueString(c.name);
     },
     secrets: () => ({ key1: randomToken(24).replace(/[-_]/g, '0'), key2: randomToken(24).replace(/[-_]/g, '1') }),
-    actions: { listKeys: (r) => ({ key1: r._secrets.key1, key2: r._secrets.key2 }), regenerateKey: (r, c) => { const k = c.body?.keyName === 'Key2' ? 'key2' : 'key1'; r._secrets[k] = randomToken(24).replace(/[-_]/g, '2'); c.save(); return { key1: r._secrets.key1, key2: r._secrets.key2 }; } },
+    actions: {
+      listKeys: (r) => {
+        if (r.properties.disableLocalAuth) throw Object.assign(new Error('Failed to list key. disableLocalAuth is set to be true'), { status: 400, code: 'BadRequest' });
+        return { key1: r._secrets.key1, key2: r._secrets.key2 };
+      },
+      regenerateKey: (r, c) => {
+        if (r.properties.disableLocalAuth) throw Object.assign(new Error('Failed to regenerate key. disableLocalAuth is set to be true'), { status: 400, code: 'BadRequest' });
+        const k = c.body?.keyName === 'Key2' ? 'key2' : 'key1';
+        r._secrets[k] = randomToken(24).replace(/[-_]/g, '2');
+        c.save();
+        return { key1: r._secrets.key1, key2: r._secrets.key2 };
+      },
+    },
     ui: { icon: 'ai', presets: [{
       key: 'foundry', label: lbl('Azure AI Foundry', 'Azure AI Foundry'),
       description: lbl('Risorsa Foundry: modelli, agenti e progetti in un unico account AI Services.', 'Foundry resource: models, agents and projects in one AI Services account.'),
@@ -989,14 +1110,72 @@ export const TYPES: TypeDef[] = [
     },
     ui: { hidden: true, icon: 'ai' },
   },
-  { type: 'Microsoft.CognitiveServices/accounts/deployments', label: lbl('Distribuzione modello', 'Model deployment'), category: 'ai', apiVersions: V('2024-10-01', '2024-06-01-preview', '2023-05-01'), defaults: defaults({ sku: { name: 'Standard', capacity: 10 }, 'properties.versionUpgradeOption': 'OnceNewDefaultVersionAvailable' }), computed: (r) => { r.properties.rateLimits = [{ key: 'request', renewalPeriod: 10, count: Number(r.sku.capacity ?? 10) }]; r.properties.capabilities = { chatCompletion: 'true' }; }, ui: { hidden: true } },
+  {
+    type: 'Microsoft.CognitiveServices/accounts/deployments', label: lbl('Distribuzione modello', 'Model deployment'), category: 'ai', apiVersions: V('2025-06-01', '2024-10-01', '2024-06-01-preview', '2023-05-01'),
+    nameRule: { pattern: /^[a-zA-Z0-9][a-zA-Z0-9._-]{1,63}$/, code: 'InvalidResourceName', message: 'Deployment names must be 2-64 characters: letters, digits, dot, dash and underscore.' },
+    defaults: defaults({ sku: { name: 'Standard', capacity: 10 }, 'properties.versionUpgradeOption': 'OnceNewDefaultVersionAvailable', 'properties.raiPolicyName': 'Microsoft.DefaultV2' }),
+    computed: (r) => {
+      r.properties.model ??= {};
+      r.properties.model.format ??= 'OpenAI';
+      const check = checkDeployment(r.properties.model, r.sku);
+      if (check.error) throw new HttpError(400, check.error.code, check.error.message);
+      const cap = Number(r.sku.capacity ?? 10);
+      const ptu = /Provisioned/.test(r.sku.name);
+      r.properties.capabilities = check.caps;
+      r.properties.currentCapacity = cap;
+      // a consumo: capacità in migliaia di token al minuto, 6 richieste al minuto ogni 1000 TPM
+      r.properties.rateLimits = ptu ? [] : [{ key: 'request', renewalPeriod: 10, count: Math.max(1, cap) }, { key: 'token', renewalPeriod: 60, count: cap * 1000 }];
+    },
+    ui: { hidden: true },
+  },
   {
     type: 'Microsoft.Search/searchServices', label: lbl('Ricerca di Azure AI', 'Azure AI Search'), category: 'ai', apiVersions: V('2024-06-01-preview', '2023-11-01', '2022-09-01', '2020-08-01'), hooks: ['identity'],
     globalName: { code: 'ServiceNameUnavailable', message: (n) => `Service name '${n}' is already in use.` },
     defaults: defaults({ sku: { name: 'basic' }, 'properties.replicaCount': 1, 'properties.partitionCount': 1, 'properties.hostingMode': 'default', 'properties.publicNetworkAccess': 'enabled' }),
-    computed: (r) => Object.assign(r.properties, { status: 'running', statusDetails: '' }),
+    computed: (r, c) => {
+      const rep = Number(r.properties.replicaCount ?? 1);
+      const part = Number(r.properties.partitionCount ?? 1);
+      const before = c.existing;
+      if (before && String(before.sku?.name).toLowerCase() !== String(r.sku?.name).toLowerCase()) throw new HttpError(400, 'InvalidRequestParameter', 'The SKU of a search service cannot be changed after creation.');
+      const free = String(r.sku?.name).toLowerCase() === 'free';
+      const basic = String(r.sku?.name).toLowerCase() === 'basic';
+      if (free && (rep !== 1 || part !== 1)) throw new HttpError(400, 'InvalidRequestParameter', 'Free search services cannot be scaled.');
+      if (!Number.isInteger(rep) || rep < 1 || rep > (basic ? 3 : 12)) throw new HttpError(400, 'InvalidRequestParameter', `replicaCount must be between 1 and ${basic ? 3 : 12}.`);
+      if (![1, 2, 3, 4, 6, 12].includes(part) || (basic && part > 3)) throw new HttpError(400, 'InvalidRequestParameter', `partitionCount must be one of ${basic ? '1, 2, 3' : '1, 2, 3, 4, 6, 12'}.`);
+      if (rep * part > 36) throw new HttpError(400, 'InvalidRequestParameter', 'A search service can use at most 36 search units (replicas × partitions).');
+      Object.assign(r.properties, { status: 'running', statusDetails: '' });
+    },
     secrets: () => ({ primaryKey: randomToken(39), secondaryKey: randomToken(39), queryKey: randomToken(39) }),
-    actions: { listAdminKeys: (r) => ({ primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey }), listQueryKeys: (r) => ({ value: [{ name: null, key: r._secrets.queryKey }] }) },
+    actions: {
+      listAdminKeys: (r) => ({ primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey }),
+      listQueryKeys: (r) => ({ value: searchQueryKeys(r) }),
+      regenerateAdminKey: (r, c) => {
+        const kind = String(c.body?._name ?? '').toLowerCase();
+        if (kind !== 'primary' && kind !== 'secondary') throw Object.assign(new Error("The key kind must be 'primary' or 'secondary'."), { status: 400, code: 'InvalidRequestParameter' });
+        r._secrets[`${kind}Key`] = randomToken(39);
+        c.save();
+        return { primaryKey: r._secrets.primaryKey, secondaryKey: r._secrets.secondaryKey };
+      },
+      createQueryKey: (r, c) => {
+        const name = String(c.body?._name ?? '');
+        const keys = searchQueryKeys(r);
+        if (keys.length >= 50) throw Object.assign(new Error('A search service can have at most 50 query keys.'), { status: 400, code: 'InvalidRequestParameter' });
+        const key = { name, key: randomToken(39) };
+        r._secrets.queryKeys = [...keys, key];
+        delete r._secrets.queryKey;
+        c.save();
+        return key;
+      },
+      deleteQueryKey: (r, c) => {
+        const keys = searchQueryKeys(r);
+        const left = keys.filter((k) => k.key !== c.body?._name);
+        if (left.length === keys.length) throw Object.assign(new Error('The query key was not found.'), { status: 404, code: 'ResourceNotFound' });
+        r._secrets.queryKeys = left;
+        delete r._secrets.queryKey;
+        c.save();
+        return null;
+      },
+    },
     ui: { icon: 'search', fields: [f('sku.name', 'Piano', 'Tier', 'select', { options: ['free', 'basic', 'standard'], default: 'basic' })] },
   },
   { type: 'Microsoft.MachineLearningServices/workspaces', label: lbl('Area di lavoro di Azure Machine Learning', 'Azure Machine Learning workspace'), category: 'ai', apiVersions: V('2024-10-01', '2024-04-01', '2023-10-01'), hooks: ['identity'], computed: (r, c) => { r.properties.workspaceId = c.existing?.properties?.workspaceId ?? uuid(); r.properties.discoveryUrl = `https://${c.location}.api.azureml.ms/discovery`; }, ui: { presets: [{ key: 'foundryHub', label: lbl('Hub di Azure AI Foundry (classico)', 'Azure AI Foundry hub (classic)'), description: lbl('Hub basato su Azure Machine Learning con progetti collegati.', 'Azure Machine Learning-based hub with linked projects.'), body: { kind: 'Hub', identity: { type: 'SystemAssigned' }, sku: { name: 'Basic', tier: 'Basic' } } }], icon: 'ai' } },

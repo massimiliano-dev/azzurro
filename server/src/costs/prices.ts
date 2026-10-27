@@ -198,6 +198,7 @@ export const PRICES: PriceDef[] = [
       { sku: 'Standard', monthly: 8.43, specs: l('SLA · 5 domini · autenticazione personalizzata', 'SLA · 5 domains · custom authentication') },
     ],
   },
+  ...['customDomains', 'config'].map((t) => INCL(`Microsoft.Web/staticSites/${t}`, 'Static Web Apps', l('App Web statica', 'Static Web App'))),
 
   // ---------------- SQL
   FREE('Microsoft.Sql/servers', 'SQL Database', l('Il server logico è gratuito: si pagano database e pool elastici.', 'The logical server is free: databases and elastic pools are billed.')),
