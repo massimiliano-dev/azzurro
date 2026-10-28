@@ -1,11 +1,13 @@
 'use client';
 
+import type { Power } from '@/lib/power';
+
 import {
   Activity, AppWindow, Bell, Blocks, Bot, Box, Boxes, BrainCircuit, Cable, Cloud, Container, Cpu, Database, DatabaseZap, FileCode2, Fingerprint, Globe,
   HardDrive, KeyRound, Layers, LayoutGrid, Lock, Network, Radio, Router, Search, Server, ServerCog, Share2, Shield, ShieldCheck, Waypoints, Workflow, type LucideIcon,
 } from 'lucide-react';
 import { Badge } from './ui';
-import { useT, type MessageKey } from '@/i18n';
+import { useI18n, useT, type MessageKey } from '@/i18n';
 
 const BY_TYPE: Record<string, LucideIcon> = {
   'microsoft.storage/storageaccounts': HardDrive,
@@ -84,6 +86,24 @@ export function categoryOf(type: string): string {
 export function ResourceIcon({ type, size = 'md' }: { type: string; size?: 'sm' | 'md' }) {
   const Icon = iconFor(type, categoryOf(type));
   return <span className={`res-icon c-${categoryOf(type)} ${size === 'sm' ? 'sm' : ''}`} aria-hidden><Icon size={size === 'sm' ? 13 : 16} /></span>;
+}
+
+/** Acceso o spento, detto chiaramente (VM, app web, server di database, cluster AKS). */
+export function PowerBadge({ power, vm }: { power: Power | null | undefined; vm?: boolean }) {
+  const { locale } = useI18n();
+  const L = (it: string, en: string) => (locale === 'it' ? it : en);
+  if (!power) return <span className="muted">—</span>;
+  switch (power) {
+    case 'running': return <Badge tone="ok">{L('In esecuzione', 'Running')}</Badge>;
+    case 'starting': return <Badge tone="info" pulse>{L('In avvio…', 'Starting…')}</Badge>;
+    case 'stopping': return <Badge tone="info" pulse>{L('In arresto…', 'Stopping…')}</Badge>;
+    case 'deallocating': return <Badge tone="info" pulse>{L('Deallocazione…', 'Deallocating…')}</Badge>;
+    case 'updating': return <Badge tone="info" pulse>{L('In aggiornamento…', 'Updating…')}</Badge>;
+    case 'deallocated': return <span title={L('Spenta e senza costi di calcolo', 'Off, no compute charges')}><Badge>{L('Spenta (deallocata)', 'Off (deallocated)')}</Badge></span>;
+    case 'stopped': return vm
+      ? <span title={L('Spenta ma ancora allocata: il calcolo si paga. Deallocala per non pagare.', 'Off but still allocated: compute is billed. Deallocate it to stop paying.')}><Badge tone="warn">{L('Spenta · ancora fatturata', 'Off · still billed')}</Badge></span>
+      : <Badge>{L('Arrestata', 'Stopped')}</Badge>;
+  }
 }
 
 export function StateBadge({ state }: { state?: string | null }) {

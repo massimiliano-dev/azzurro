@@ -56,7 +56,9 @@ export async function armRequest(ctx: ArmCtx, method: string, path: string, quer
   const apiVersion = q.get('api-version');
   if (!apiVersion) throw armError(400, 'MissingApiVersionParameter', 'The api-version query parameter (?api-version=) is required for all requests.');
   if (!API_VERSION.test(apiVersion)) throw armError(400, 'InvalidApiVersionParameter', `The api-version '${apiVersion}' is invalid. The supported versions are '2024-03-01,2023-07-01,2022-09-01,2021-04-01,2020-06-01'.`);
-  const c: ArmCtx = { ...ctx, expand: q.get('$expand') ?? undefined };
+  // statusOnly=true (elenco VM con lo stato di alimentazione, come nel portale Azure) = instanceView
+  const expand = [q.get('$expand'), /^true$/i.test(q.get('statusOnly') ?? '') ? 'instanceView' : null].filter(Boolean).join(',');
+  const c: ArmCtx = { ...ctx, expand: expand || undefined };
   const p = parseArmPath(path.split('?')[0]);
   const desc = WRITE.has(method) && !ctx.dryRun ? describe(p, method) : null;
   try {

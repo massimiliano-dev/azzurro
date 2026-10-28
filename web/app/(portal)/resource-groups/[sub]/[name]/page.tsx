@@ -12,7 +12,8 @@ import { PageHeader, Tabs, TagEditor, Toolbar, useTab } from '@/components/page'
 import { Badge, Button, Card, CodeBlock, ErrorNotice, Field, IdText, Input, KV, Select, Skeleton, Tags } from '@/components/ui';
 import { Panel, useConfirm, useToast } from '@/components/overlay';
 import { DataTable } from '@/components/table';
-import { ResourceIcon, StateBadge } from '@/components/resource';
+import { PowerBadge, ResourceIcon, StateBadge } from '@/components/resource';
+import { loadPowerStates } from '@/lib/power';
 import { MoveResourcesPanel } from '@/components/rgmove';
 import { startOperation } from '@/lib/operations';
 
@@ -30,6 +31,8 @@ export default function ResourceGroup() {
   const deps = useAsync(async () => (await arm.get<{ value: any[] }>(`${id}/providers/Microsoft.Resources/deployments`, '2022-09-01')).value, [id], { enabled: tab === 'deployments' });
   const locks = useAsync(async () => (await arm.get<{ value: any[] }>(`${id}/providers/Microsoft.Authorization/locks`, '2020-05-01')).value, [id], { enabled: tab === 'locks' });
   const cat = useAsync(() => loadCatalog(), []);
+  const hasPower = (res.data ?? []).some((r) => /^microsoft\.(compute\/virtualmachines|web\/sites)$/i.test(r.type));
+  const power = useAsync(() => loadPowerStates([sub]), [sub, hasPower], { enabled: hasPower });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [tags, setTags] = useState<Record<string, string> | null>(null);
   const [exported, setExported] = useState<any>(null);
@@ -101,6 +104,7 @@ export default function ResourceGroup() {
             search={(r) => `${r.name} ${r.type}`} empty={t('rg.empty')} initialSort={{ key: 'name' }}
             columns={[
               { key: 'name', header: t('common.name'), sort: (r) => r.name, render: (r) => <div className="cell-main"><ResourceIcon type={r.type} size="sm" /><Link href={`/resource?id=${encodeURIComponent(r.id)}`}>{r.name}</Link></div> },
+              { key: 'power', header: locale === 'it' ? 'Stato' : 'Status', sort: (r) => power.data?.get(r.id.toLowerCase()) ?? '', render: (r) => (power.data?.has(r.id.toLowerCase()) ? <PowerBadge power={power.data.get(r.id.toLowerCase())} vm={/virtualmachines$/i.test(r.type)} /> : null) },
               { key: 'type', header: t('common.type'), sort: (r) => r.type, render: (r) => typeLabel(cat.data?.all, r.type, locale) },
               { key: 'loc', header: t('common.location'), sort: (r) => r.location, render: (r) => r.location ?? '—' },
               { key: 'changed', header: t('common.updated'), sort: (r) => r.changedTime, render: (r) => <span className="small muted">{fmtRelative(r.changedTime)}</span> },

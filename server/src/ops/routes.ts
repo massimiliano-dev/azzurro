@@ -5,7 +5,7 @@ import { HttpError } from '../errors.ts';
 import { readJson } from '../http.ts';
 import type { AppEnv } from '../types.ts';
 import { bindApp, startOperation, type Operation } from './engine.ts';
-import { MOVE_STEPS, runDeleteGroup, runDeleteResources, runMove } from './kinds.ts';
+import { MOVE_STEPS, runDeleteGroup, runDeleteResources, runMove, runPower } from './kinds.ts';
 
 const ARM_ID = /^\/subscriptions\/[0-9a-f-]{36}\/resourceGroups\/[^/]+(\/providers\/.+)?$/i;
 const rgName = (id: string) => decodeURIComponent(id.split('/')[4] ?? id);
@@ -60,6 +60,22 @@ export function operationRoutes(app: Hono<AppEnv>): void {
           })(),
           steps: MOVE_STEPS,
           run: (ctx) => runMove(ctx, { source, target, resources, createTarget: body.createTarget ?? null, cleanup: !!body.cleanup, movesAll: !!body.movesAll }),
+        });
+        return c.json(op, 202);
+      }
+      case 'power': {
+        const VERBS: Record<string, { it: string; en: string }> = {
+          start: { it: 'Avvia', en: 'Start' }, stop: { it: 'Arresta', en: 'Stop' }, powerOff: { it: 'Spegni', en: 'Power off' },
+          restart: { it: 'Riavvia', en: 'Restart' }, deallocate: { it: 'Dealloca', en: 'Deallocate' },
+        };
+        const verb = VERBS[body.action];
+        if (!verb || !ARM_ID.test(body.id ?? '') || !String(body.id).includes('/providers/') || typeof body.apiVersion !== 'string') throw bad('id, action and apiVersion are required.');
+        const name = decodeURIComponent(String(body.id).split('/').pop() ?? '');
+        const op = await startOperation({
+          userId: p.oid, cookie, kind: 'power', target: String(body.id).split('/providers/')[0],
+          title: { it: `${verb.it} ${name}`, en: `${verb.en} ${name}` },
+          steps: [{ key: 'action', label: { it: `${verb.it}: richiesta ad Azure e attesa del completamento`, en: `${verb.en}: request to Azure and wait for completion` } }],
+          run: (ctx) => runPower(ctx, body.id, body.action, body.apiVersion),
         });
         return c.json(op, 202);
       }

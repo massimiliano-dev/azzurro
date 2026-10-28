@@ -138,6 +138,12 @@ export async function runMove(ctx: OpCtx, p: MoveParams): Promise<{ href: string
   return { href: `/resource-groups/${sub}/${encodeURIComponent(rg)}` };
 }
 
+/** Avvio, arresto, riavvio, deallocazione: su Azure possono durare minuti (202 + polling). */
+export async function runPower(ctx: OpCtx, id: string, action: string, apiVersion: string): Promise<{ href: string }> {
+  await ctx.step('action', () => ctx.armLongRunning('POST', `${id}/${action}`, apiVersion, {}));
+  return { href: `/resource?id=${encodeURIComponent(id)}` };
+}
+
 export async function runDeleteGroup(ctx: OpCtx, id: string): Promise<{ href: string }> {
   await ctx.step('delete', () => ctx.armLongRunning('DELETE', id, RG));
   return { href: '/resource-groups' };

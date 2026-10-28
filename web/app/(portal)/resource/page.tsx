@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, Star, KeyRound, Pencil, Sparkles, Play, Plus, Power, RefreshCw, RotateCw, ShieldCheck, Square, Trash2 } from 'lucide-react';
 import { portal, arm, graph } from '@/lib/api';
 import { useAsync } from '@/lib/hooks';
@@ -18,7 +18,9 @@ import { JsonEditor, PageHeader, Tabs, TagEditor, Toolbar, useTab } from '@/comp
 import { Badge, Button, Card, CodeBlock, Empty, ErrorNotice, Field, IdText, Input, KV, Notice, SecretValue, Skeleton, Tags } from '@/components/ui';
 import { Panel, useConfirm, useToast } from '@/components/overlay';
 import { DataTable } from '@/components/table';
-import { ResourceIcon, StateBadge } from '@/components/resource';
+import { PowerBadge, ResourceIcon, StateBadge } from '@/components/resource';
+import { AFTER, powerOf, transitional, type Power as PowerState } from '@/lib/power';
+import { startOperation } from '@/lib/operations';
 
 /** schede di servizio che mostrano già chiavi e segreti: la scheda generica sarebbe un doppione */
 const KEY_TABS = new Set(['connect', 'access', 'accesskeys', 'endpoint', 'searchkeys', 'connkeys', 'secrets']);
@@ -113,12 +115,22 @@ export default function ResourcePage() {
     { label: info.name ?? '' },
   ];
 
+  // avvio/arresto: operazione in background (su Azure dura da secondi a minuti); intanto si mostra
+  // lo stato di passaggio e si rilegge l'instance view finché la risorsa non si assesta
+  const [pending, setPending] = useState<{ action: string; at: number } | null>(null);
+  const reloadRef = useRef(res.reload);
+  reloadRef.current = res.reload;
+  const settling = !!pending || transitional(powerOf(info.type, res.data));
+  useEffect(() => {
+    if (!settling) return;
+    const t = setInterval(() => void reloadRef.current(), 4000);
+    return () => clearInterval(t);
+  }, [settling]);
   const runAction = async (a: string) => {
     setBusy(true);
     try {
-      await arm.post(`${id}/${a}`, {}, apiVersion);
-      toast.ok(t('res.actionDone', { action: a }));
-      await res.reload();
+      await startOperation({ kind: 'power', id, action: a, apiVersion });
+      setPending({ action: a, at: Date.now() });
     } catch (e) {
       toast.error(e);
     } finally {
@@ -148,18 +160,25 @@ export default function ResourcePage() {
     }
   };
   const props = r ? flatten(r.properties) : [];
-  const power = r?.properties?.instanceView?.statuses?.find((s: any) => s.code?.startsWith('PowerState/'))?.displayStatus ?? r?.properties?.state ?? r?.properties?.powerState?.code;
+  const isVm = info.type?.toLowerCase() === 'microsoft.compute/virtualmachines';
+  const actual = powerOf(info.type, r);
+  const reached = (a: string, p: PowerState | null) => (a === 'start' || a === 'restart' ? p === 'running' : a === 'deallocate' ? p === 'deallocated' : p === 'stopped' || p === 'deallocated');
+  // dopo un riavvio la VM è ancora "in esecuzione" per qualche secondo prima di passare ad "in avvio"
+  const power: PowerState | null = pending && !(reached(pending.action, actual) && (pending.action !== 'restart' || Date.now() - pending.at > 15_000)) ? AFTER[pending.action] : actual;
+  const on = power === 'running';
+  const busyPower = transitional(power);
 
   return (
     <>
       <PageHeader title={info.name ?? ''} subtitle={label} crumbs={crumbs} icon={undefined} actions={info.type ? <ResourceIcon type={info.type} /> : undefined} />
       <Toolbar>
         <Button variant="ghost" icon={RefreshCw} onClick={res.reload}>{t('common.refresh')}</Button>
-        {powerActions.includes('start') && <Button icon={Play} loading={busy} onClick={() => runAction('start')}>{t('common.start')}</Button>}
-        {powerActions.includes('restart') && <Button icon={RotateCw} loading={busy} onClick={() => runAction('restart')}>{t('common.restart')}</Button>}
-        {powerActions.includes('stop') && <Button icon={Square} loading={busy} onClick={() => runAction('stop')}>{t('common.stop')}</Button>}
-        {powerActions.includes('powerOff') && <Button icon={Power} loading={busy} onClick={() => runAction('powerOff')}>{t('common.stop')}</Button>}
-        {powerActions.includes('deallocate') && <Button icon={Power} loading={busy} onClick={() => runAction('deallocate')}>deallocate</Button>}
+        {power && <PowerBadge power={power} vm={isVm} />}
+        {powerActions.includes('start') && <Button icon={Play} loading={busy} disabled={on || busyPower} onClick={() => runAction('start')}>{t('common.start')}</Button>}
+        {powerActions.includes('restart') && <Button icon={RotateCw} loading={busy} disabled={!on} onClick={() => runAction('restart')}>{t('common.restart')}</Button>}
+        {powerActions.includes('stop') && <Button icon={Square} loading={busy} disabled={!on} onClick={() => runAction('stop')}>{t('common.stop')}</Button>}
+        {powerActions.includes('powerOff') && <Button icon={Power} loading={busy} disabled={!on} title={isVm ? (locale === 'it' ? 'Spegne il sistema operativo: la VM resta allocata e il calcolo si paga ancora' : 'Shuts down the OS: the VM stays allocated and compute is still billed') : undefined} onClick={() => runAction('powerOff')}>{t('common.stop')}</Button>}
+        {powerActions.includes('deallocate') && <Button icon={Power} loading={busy} disabled={!(on || power === 'stopped')} title={locale === 'it' ? 'Spegne e libera l\'hardware: niente costi di calcolo' : 'Shuts down and releases the hardware: no compute charges'} onClick={() => runAction('deallocate')}>{locale === 'it' ? 'Dealloca' : 'Deallocate'}</Button>}
         <Button icon={Pencil} disabled={!r} onClick={() => setJson(JSON.stringify(r, null, 2))}>{t('res.editJson')}</Button>
         <Link className="btn" href={`/iam?scope=${encodeURIComponent(id)}`}><ShieldCheck size={16} />{t('nav.iam')}</Link>
         <Button className={`fav-toggle ${fav.has(id) ? 'on' : ''}`} icon={Star} aria-pressed={fav.has(id)} onClick={() => fav.toggle({ id, name: info.name ?? id, type: info.type ?? '' })}>{fav.has(id) ? t('res.unfavorite') : t('res.favorite')}</Button>
@@ -190,7 +209,7 @@ export default function ResourcePage() {
               [t('common.subscription'), info.subscriptionId ? <Link key="s" href={`/subscriptions/${info.subscriptionId}`}><span className="mono">{info.subscriptionId}</span></Link> : null],
               [t('common.type'), <span key="t" className="mono">{r.type}</span>],
               [t('res.provisioning'), <StateBadge key="p" state={r.properties?.provisioningState} />],
-              ...(power ? [[t('res.power'), <Badge key="pw" tone={/running|ready/i.test(String(power)) ? 'ok' : 'warn'}>{String(power)}</Badge>] as [string, React.ReactNode]] : []),
+              ...(power ? [[t('res.power'), <PowerBadge key="pw" power={power} vm={isVm} />] as [string, React.ReactNode]] : []),
               ...(r.sku ? [[t('res.sku'), <span key="sku" className="mono">{r.sku.name}{r.sku.tier && r.sku.tier !== r.sku.name ? ` · ${r.sku.tier}` : ''}</span>] as [string, React.ReactNode]] : []),
               ...(r.kind ? [[t('res.kind'), r.kind] as [string, React.ReactNode]] : []),
               [t('res.resourceId'), <IdText key="i" value={r.id} />],

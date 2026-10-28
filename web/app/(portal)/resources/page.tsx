@@ -1,5 +1,7 @@
 'use client';
 
+import { loadPowerStates } from '@/lib/power';
+
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { LayoutList, Plus, RefreshCw, Trash2 } from 'lucide-react';
@@ -12,7 +14,7 @@ import { PageHeader, Toolbar } from '@/components/page';
 import { Button, Select, Tags } from '@/components/ui';
 import { useConfirm, useToast } from '@/components/overlay';
 import { useSubscriptions } from '@/components/pickers';
-import { ResourceIcon } from '@/components/resource';
+import { ResourceIcon, PowerBadge } from '@/components/resource';
 
 export default function Resources() {
   const { t, locale, fmtRelative } = useI18n();
@@ -27,6 +29,9 @@ export default function Resources() {
     const all = await Promise.all((subs.data ?? []).map(async (s) => (await arm.get<{ value: any[] }>(`/subscriptions/${s.subscriptionId}/resources`, '2021-04-01', { $expand: 'changedTime' })).value.map((r) => ({ ...r, subName: s.displayName }))));
     return all.flat();
   }, [subs.data]);
+  // acceso/spento di VM e app web: una richiesta per sottoscrizione, solo se in elenco ce ne sono
+  const hasPower = (res.data ?? []).some((r) => /^microsoft\.(compute\/virtualmachines|web\/sites)$/i.test(r.type));
+  const power = useAsync(() => loadPowerStates((subs.data ?? []).map((s) => s.subscriptionId)), [subs.data, hasPower], { enabled: hasPower });
   const types = useMemo(() => [...new Set((res.data ?? []).map((r) => r.type))].sort(), [res.data]);
   const locs = useMemo(() => [...new Set((res.data ?? []).map((r) => r.location).filter(Boolean))].sort(), [res.data]);
   const rows = (res.data ?? []).filter((r) => (!type || r.type === type) && (!loc || r.location === loc));
@@ -78,6 +83,7 @@ export default function Resources() {
         }
         columns={[
           { key: 'name', header: t('common.name'), sort: (r) => r.name, render: (r) => <div className="cell-main"><ResourceIcon type={r.type} size="sm" /><Link href={`/resource?id=${encodeURIComponent(r.id)}`}>{r.name}</Link></div> },
+          { key: 'power', header: locale === 'it' ? 'Stato' : 'Status', sort: (r) => power.data?.get(r.id.toLowerCase()) ?? '', render: (r) => (power.data?.has(r.id.toLowerCase()) ? <PowerBadge power={power.data.get(r.id.toLowerCase())} vm={/virtualmachines$/i.test(r.type)} /> : null) },
           { key: 'type', header: t('common.type'), sort: (r) => typeLabel(cat.data?.all, r.type, locale), render: (r) => typeLabel(cat.data?.all, r.type, locale) },
           { key: 'rg', header: t('common.resourceGroup'), sort: (r) => r.id.split('/')[4], render: (r) => <Link href={`/resource-groups/${r.id.split('/')[2]}/${encodeURIComponent(r.id.split('/')[4])}`}>{r.id.split('/')[4]}</Link> },
           { key: 'loc', header: t('common.location'), sort: (r) => r.location, render: (r) => r.location ?? '—' },
