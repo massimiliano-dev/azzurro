@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Check, CircleAlert, ListChecks, Loader2, Trash2, X } from 'lucide-react';
 import { portal } from '@/lib/api';
@@ -31,12 +31,14 @@ export default function OperationsPage() {
   const [, tick] = useState(0);
   const running = ops.data?.running ?? 0;
 
+  const reload = useRef(ops.reload);
+  reload.current = ops.reload;
   useEffect(() => {
-    const t = setInterval(() => { if (running) { void ops.reload(); tick((n) => n + 1); } }, 2500);
-    const now = () => void ops.reload();
+    const t = setInterval(() => { if (running) { void reload.current(); tick((n) => n + 1); } }, 2500);
+    const now = () => void reload.current();
     window.addEventListener(OPS_EVENT, now);
     return () => { clearInterval(t); window.removeEventListener(OPS_EVENT, now); };
-  }, [running, ops]);
+  }, [running]);
 
   const STATUS: Record<Operation['status'], { tone: 'ok' | 'warn' | 'bad' | 'info'; label: string }> = {
     Running: { tone: 'info', label: L('In corso', 'Running') },

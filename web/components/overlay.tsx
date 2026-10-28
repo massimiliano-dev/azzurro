@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useT } from '@/i18n';
@@ -134,10 +134,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Stabile tra un render e l'altro: si può usare nelle dipendenze degli effetti senza farli ripartire. */
 export function useToast() {
   const push = useContext(ToastCtx);
   const t = useT();
-  return {
+  return useMemo(() => ({
     ok: (title: string, text?: string) => push({ tone: 'ok', title, text }),
     info: (title: string, text?: string) => push({ tone: 'info', title, text }),
     error: (e: unknown, title?: string) => {
@@ -145,5 +146,5 @@ export function useToast() {
       const msg = err?.status === 403 ? t('err.forbidden') : err?.status === 0 ? t('err.network') : err?.details?.[0]?.message ?? err?.message ?? String(e);
       push({ tone: 'bad', title: title ?? err?.code ?? t('common.error'), text: msg });
     },
-  };
+  }), [push, t]);
 }

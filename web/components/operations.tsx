@@ -18,6 +18,11 @@ export function OperationsIndicator() {
   const [running, setRunning] = useState<Operation[]>([]);
   const known = useRef<Map<string, Operation['status']>>(new Map());
   const first = useRef(true);
+  // letti da ref: l'effetto parte una volta sola e non si riavvia a ogni render
+  const toastRef = useRef(toast);
+  const localeRef = useRef(locale);
+  toastRef.current = toast;
+  localeRef.current = locale;
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -32,9 +37,10 @@ export function OperationsIndicator() {
           const before = known.current.get(o.id);
           if (!first.current && before === 'Running' && o.status !== 'Running') {
             invalidateAll();
-            const title = o.title[locale];
-            if (o.status === 'Succeeded') toast.ok(locale === 'it' ? 'Operazione completata' : 'Operation completed', title);
-            else if (o.status === 'Failed') toast.error(new Error(`${title}: ${o.error?.message ?? ''}`));
+            const loc = localeRef.current;
+            const title = o.title[loc];
+            if (o.status === 'Succeeded') toastRef.current.ok(loc === 'it' ? 'Operazione completata' : 'Operation completed', title);
+            else if (o.status === 'Failed') toastRef.current.error(new Error(`${title}: ${o.error?.message ?? ''}`));
           }
           known.current.set(o.id, o.status);
         }
@@ -48,7 +54,7 @@ export function OperationsIndicator() {
     void tick();
     window.addEventListener(OPS_EVENT, now);
     return () => { alive = false; clearTimeout(timer); window.removeEventListener(OPS_EVENT, now); };
-  }, [locale, toast]);
+  }, []);
 
   const label = locale === 'it' ? `Operazioni in corso: ${running.length}` : `Operations running: ${running.length}`;
   return (
