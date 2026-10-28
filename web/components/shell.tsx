@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Activity, AppWindow, Bell, Building2, ChevronDown, Download, FileCode2, FolderKanban, Home, KeyRound, LayoutList, LogOut, Menu, PlugZap, Plus, ScrollText, Search, Settings, ShieldCheck, UserCog, Users, UsersRound, Wallet, X, Fingerprint, Coins, Tags, Sparkles, Check, History } from 'lucide-react';
+import { ListChecks, Activity, AppWindow, Bell, Building2, ChevronDown, Download, FileCode2, FolderKanban, Home, KeyRound, LayoutList, LogOut, Menu, PlugZap, Plus, ScrollText, Search, Settings, ShieldCheck, UserCog, Users, UsersRound, Wallet, X, Fingerprint, Coins, Tags, Sparkles, Check, History } from 'lucide-react';
 import { portal } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { useDebounced } from '@/lib/hooks';
@@ -11,6 +11,7 @@ import { useI18n, type Locale, type MessageKey } from '@/i18n';
 import { Logo } from './logo';
 import { TableSorter } from './tablesort';
 import { AssistantDock } from './assistant-dock';
+import { OperationsIndicator } from './operations';
 import { syncPush } from '@/lib/push';
 import { switchDirectory, useDirectory } from '@/lib/directory';
 import { clearHistory, recordVisit, useHistoryList } from '@/lib/history';
@@ -29,6 +30,7 @@ const NAV: { section: MessageKey; items: { href: string; label: MessageKey; icon
     { href: '/resources', label: 'nav.allResources', icon: LayoutList },
     { href: '/deployments', label: 'nav.deployments', icon: FileCode2 },
     { href: '/iam', label: 'nav.iam', icon: ShieldCheck },
+    { href: '/operations', label: 'nav.operations', icon: ListChecks },
     { href: '/activity', label: 'nav.activity', icon: Activity },
     { href: '/costs', label: 'nav.costs', icon: Coins },
     { href: '/pricing', label: 'nav.pricing', icon: Tags },
@@ -403,6 +405,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <GlobalSearch />
         <div className="topbar-actions">
           {canInstall && <button className="btn ghost sm" onClick={() => void install()}><Download size={15} /><span className="install-label">{t('shell.install')}</span></button>}
+          <OperationsIndicator />
           <NavHistory />
           <DirectorySwitcher />
           <Notifications />

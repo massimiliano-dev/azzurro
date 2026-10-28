@@ -19,7 +19,7 @@ const en: Dict = {
   'nav.home': 'Home', 'nav.create': 'Create a resource', 'nav.subscriptions': 'Subscriptions', 'nav.resourceGroups': 'Resource groups',
   'nav.allResources': 'All resources', 'nav.deployments': 'Deployments', 'nav.iam': 'Access control (IAM)', 'nav.activity': 'Activity log',
   'nav.entra': 'Microsoft Entra ID', 'nav.users': 'Users', 'nav.groups': 'Groups', 'nav.apps': 'App registrations', 'nav.enterpriseApps': 'Enterprise applications',
-  'nav.roles': 'Roles and administrators', 'nav.logs': 'Sign-in and audit logs', 'nav.notifications': 'Notifications', 'nav.connect': 'Connect tools',
+  'nav.roles': 'Roles and administrators', 'nav.logs': 'Sign-in and audit logs', 'nav.operations': 'Operations', 'nav.notifications': 'Notifications', 'nav.connect': 'Connect tools',
   'nav.settings': 'Settings', 'nav.sectionAzure': 'Resources', 'nav.sectionEntra': 'Identity', 'nav.sectionTools': 'Tools',
 
   'shell.searchPlaceholder': 'Search resources, services, users and apps (/)', 'shell.notifications': 'Notifications', 'shell.markAllRead': 'Mark all as read',

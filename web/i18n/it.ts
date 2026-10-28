@@ -19,7 +19,7 @@ const it = {
   'nav.home': 'Home', 'nav.create': 'Crea una risorsa', 'nav.subscriptions': 'Sottoscrizioni', 'nav.resourceGroups': 'Gruppi di risorse',
   'nav.allResources': 'Tutte le risorse', 'nav.deployments': 'Distribuzioni', 'nav.iam': 'Controllo di accesso (IAM)', 'nav.activity': 'Log attività',
   'nav.entra': 'Microsoft Entra ID', 'nav.users': 'Utenti', 'nav.groups': 'Gruppi', 'nav.apps': 'Registrazioni app', 'nav.enterpriseApps': 'Applicazioni aziendali',
-  'nav.roles': 'Ruoli e amministratori', 'nav.logs': 'Log di accesso e audit', 'nav.notifications': 'Notifiche', 'nav.connect': 'Connetti strumenti',
+  'nav.roles': 'Ruoli e amministratori', 'nav.logs': 'Log di accesso e audit', 'nav.operations': 'Operazioni', 'nav.notifications': 'Notifiche', 'nav.connect': 'Connetti strumenti',
   'nav.settings': 'Impostazioni', 'nav.sectionAzure': 'Risorse', 'nav.sectionEntra': 'Identità', 'nav.sectionTools': 'Strumenti',
 
   // shell

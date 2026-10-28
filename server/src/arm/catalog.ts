@@ -487,6 +487,8 @@ export const TYPES: TypeDef[] = [
         issueDate: issued, expirationDate: new Date(Date.parse(issued) + 182 * 86400_000).toISOString(),
         thumbprint: c.existing?.properties?.thumbprint ?? uniqueString(c.id, 'thumb').toUpperCase().padEnd(40, '0').slice(0, 40),
         valid: true, keyVaultSecretStatus: 'Initialized', publicKeyHash: uniqueString(c.id, 'pk'),
+        // come su Azure: i certificati gestiti e quelli caricati hanno keyVaultId vuoto
+        keyVaultId: r.properties.keyVaultId ?? '',
       });
       delete r.properties.password;
     },

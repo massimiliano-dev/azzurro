@@ -14,6 +14,7 @@ import { Panel, useConfirm, useToast } from '@/components/overlay';
 import { DataTable } from '@/components/table';
 import { ResourceIcon, StateBadge } from '@/components/resource';
 import { MoveResourcesPanel } from '@/components/rgmove';
+import { startOperation } from '@/lib/operations';
 
 export default function ResourceGroup() {
   const { sub, name: rawName } = useParams<{ sub: string; name: string }>();
@@ -42,8 +43,9 @@ export default function ResourceGroup() {
   const deleteGroup = async () => {
     if (!(await confirm({ title: t('rg.deleteTitle'), text: <>{t('rg.deleteText', { n: res.data?.length ?? 0 })} {t('common.irreversible')}</>, danger: true, confirmLabel: t('common.delete'), typeToConfirm: name }))) return;
     try {
-      await arm.del(id);
-      toast.ok(t('common.deleted'), name);
+      // come su Azure l'eliminazione prosegue per conto suo: la si segue in Operazioni
+      await startOperation({ kind: 'deleteResourceGroup', id });
+      toast.ok(locale === 'it' ? 'Eliminazione avviata' : 'Deletion started', name);
       router.push('/resource-groups');
     } catch (e) {
       toast.error(e);
@@ -51,17 +53,17 @@ export default function ResourceGroup() {
   };
   const deleteSelected = async () => {
     if (!(await confirm({ title: t('res.deleteTitle'), text: [...selected].map((x) => x.split('/').pop()).join(', '), danger: true, confirmLabel: t('common.delete') }))) return;
-    for (const rid of selected) {
+    const resources = [...selected].map((rid) => {
       const type = rid.split('/providers/')[1]?.split('/').filter((_, i) => i % 2 === 0).join('/');
-      const v = cat.data?.all.find((c) => c.type.toLowerCase() === type?.toLowerCase())?.apiVersion ?? '2021-04-01';
-      try {
-        await arm.del(rid, v);
-      } catch (e) {
-        toast.error(e);
-      }
+      return { id: rid, apiVersion: cat.data?.all.find((c) => c.type.toLowerCase() === type?.toLowerCase())?.apiVersion ?? '2021-04-01' };
+    });
+    try {
+      await startOperation({ kind: 'deleteResources', resources });
+      toast.ok(locale === 'it' ? 'Eliminazione avviata' : 'Deletion started', locale === 'it' ? `${resources.length} risorse · segui in Operazioni` : `${resources.length} resources · follow it in Operations`);
+      setSelected(new Set());
+    } catch (e) {
+      toast.error(e);
     }
-    setSelected(new Set());
-    await res.reload();
   };
 
   return (

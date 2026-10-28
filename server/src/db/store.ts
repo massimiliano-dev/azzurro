@@ -26,6 +26,11 @@ export async function getMany<T = any>(collection: string, ids: string[]): Promi
   return rows.map((r) => r.data as T);
 }
 
+/** Aggiorna solo i dati di un oggetto, senza toccarne il padre. */
+export async function replaceData<T>(collection: string, id: string, data: T): Promise<void> {
+  await q('UPDATE objects SET data = $3, updated_at = now() WHERE collection = $1 AND id = $2', [collection, k(id), JSON.stringify(data)]);
+}
+
 export async function put<T>(collection: string, id: string, data: T, parent?: string | null): Promise<T> {
   await q(
     `INSERT INTO objects (collection, id, parent, data) VALUES ($1, $2, $3, $4)

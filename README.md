@@ -35,6 +35,12 @@ Al primo accesso l'utente viene copiato nella directory emulata; ruoli e profilo
 
 Senza le variabili Microsoft il portale torna all'accesso con utente e password della directory emulata (`admin@azzurro.local` / `Azzurro123!`, modificabili in `.env` prima del primo avvio). Lo stesso account resta valido per Azure CLI, SDK e Terraform, che usano gli endpoint token emulati. Per ripartire da zero: `npm run db:reset`.
 
+## Operazioni in background
+
+Spostamenti di risorse ed eliminazioni (di un gruppo o delle risorse selezionate) partono come operazioni sul server, come le operazioni asincrone di Azure: proseguono anche chiudendo il pannello o il browser e si seguono nella sezione **Operazioni** (contatore in alto a destra), con i passi, la durata, l'esito e una notifica alla fine. Si possono annullare tra un passo e l'altro. Un riavvio di Azzurro interrompe quelle in corso, che risultano non riuscite.
+
+Lo spostamento tra sottoscrizioni gestisce i **certificati gestiti di App Service**, che Azure non sposta (`LinkedInvalidPropertyId` su `properties.keyVaultId`): verifica prima il resto senza toccarli, poi li scollega, li elimina, sposta, li ricrea gratis nella destinazione sul piano spostato e li ricollega al dominio (HTTPS assente per qualche minuto). Se lo spostamento non riesce dopo averli tolti, li ricrea nell'origine. I certificati caricati da PFX vanno ricaricati a mano.
+
 ## Cosa è emulato
 
 **Microsoft Entra ID (login)**

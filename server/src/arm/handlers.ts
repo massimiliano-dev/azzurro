@@ -227,6 +227,12 @@ export async function rgAction(ctx: ArmCtx, sub: string, rg: string, action: str
         const r = await store.get('resource', rid);
         if (!r || !rid.toLowerCase().startsWith(group.id.toLowerCase() + '/')) throw armError(400, 'ResourceNotTopLevel', `The resource '${rid}' does not belong to resource group '${rg}' or is not a top-level resource.`);
         if (r._child) throw armError(400, 'ResourceNotTopLevel', `Resource '${rid}' is not a top level resource. Only top level resources can be moved.`);
+        // come Azure: i certificati App Service senza Key Vault (gestiti o caricati) non si spostano
+        if (r.type.toLowerCase() === 'microsoft.web/certificates' && !r.properties?.keyVaultId) {
+          throw armError(400, 'ResourceMovePolicyValidationFailed', `Resource move policy validation failed. Please see details. Diagnostic information: subscription id '${sub}', request correlation id '${uuid()}'.`, [
+            { code: 'ResourceMovePolicyValidationFailed', target: r.id, message: JSON.stringify({ error: { code: 'LinkedInvalidPropertyId', message: "Property id '' at path 'properties.keyVaultId' is invalid. Expect fully qualified resource Id that start with '/subscriptions/{subscriptionId}' or '/providers/{resourceProviderNamespace}/'." } }) },
+          ]);
+        }
         await authorize(ctx, `${r.type}/move/action`, r.id);
         await checkLocks(ctx, r.id, 'delete');
         recs.push(r);
@@ -251,6 +257,18 @@ export async function rgAction(ctx: ArmCtx, sub: string, rg: string, action: str
         }
         const moved = await store.get('resource', newId);
         if (moved) await store.put('resource', newId, moved, targetRg.id);
+      }
+      // come Azure: i riferimenti tra risorse spostate insieme (sito → piano, NIC → subnet…) puntano ai nuovi ID
+      const renames = recs.map((r) => [r.id, targetRg.id + r.id.slice(group.id.length)] as const);
+      const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      for (const [, newId] of renames) {
+        const tree = [await store.get('resource', newId), ...(await store.list('resource', { prefix: newId.toLowerCase() + '/' }))].filter(Boolean);
+        for (const rec of tree) {
+          let text = JSON.stringify(rec);
+          for (const [from, to] of renames) text = text.replace(new RegExp(esc(from) + '(?=["/])', 'gi'), to);
+          const next = JSON.parse(text);
+          if (text !== JSON.stringify(rec)) await store.replaceData('resource', next.id, next);
+        }
       }
       return { status: 204 };
     }

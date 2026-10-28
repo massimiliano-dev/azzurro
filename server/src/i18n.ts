@@ -15,6 +15,12 @@ type Dict = Record<string, string>;
 
 const it: Dict = {
   // notifiche
+  'n.operationSucceeded.title': 'Operazione completata',
+  'n.operationSucceeded.body': '{title}: completata.',
+  'n.operationFailed.title': 'Operazione non riuscita',
+  'n.operationFailed.body': '{title}: {error}',
+  'n.operationCanceled.title': 'Operazione annullata',
+  'n.operationCanceled.body': '{title}: annullata.',
   'n.deploymentSucceeded.title': 'Distribuzione completata',
   'n.deploymentSucceeded.body': 'La distribuzione «{name}» in {scope} è terminata correttamente.',
   'n.deploymentFailed.title': 'Distribuzione non riuscita',
@@ -80,6 +86,12 @@ const it: Dict = {
 };
 
 const en: Dict = {
+  'n.operationSucceeded.title': 'Operation completed',
+  'n.operationSucceeded.body': '{title}: completed.',
+  'n.operationFailed.title': 'Operation failed',
+  'n.operationFailed.body': '{title}: {error}',
+  'n.operationCanceled.title': 'Operation canceled',
+  'n.operationCanceled.body': '{title}: canceled.',
   'n.deploymentSucceeded.title': 'Deployment succeeded',
   'n.deploymentSucceeded.body': 'Deployment “{name}” in {scope} completed successfully.',
   'n.deploymentFailed.title': 'Deployment failed',

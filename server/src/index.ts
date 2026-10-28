@@ -22,6 +22,7 @@ async function main() {
   const { created, adminUpn } = await seed();
   initPush();
   startJobs();
+  await (await import('./ops/engine.ts')).recoverOperations();
 
   const app = createApp();
   serve({ fetch: app.fetch, port: config.port }, () => {

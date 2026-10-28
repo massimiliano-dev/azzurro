@@ -24,6 +24,7 @@ import { pricingRoutes } from '../costs/portal.ts';
 import { initialDirectory, realRoutes } from '../real/routes.ts';
 import { assistantRoutes } from '../assistant/routes.ts';
 import { adminRoutes } from './admin.ts';
+import { operationRoutes } from '../ops/routes.ts';
 import { beginMicrosoftLogin, completeMicrosoftLogin, LoginError, msEnabled, needsHandoff, safeReturn } from '../auth/microsoft.ts';
 import type { AppEnv } from '../types.ts';
 
@@ -161,11 +162,12 @@ export function portalRoutes(app: Hono<AppEnv>): void {
 
   // --- tutto ciò che segue richiede sessione o token ---
   const auth = authenticate('portal');
-  for (const p of ['/_portal/session', '/_portal/token', '/_portal/settings', '/_portal/push/*', '/_portal/notifications', '/_portal/notifications/*', '/_portal/overview', '/_portal/catalog', '/_portal/search', '/_portal/pricing', '/_portal/pricing/*', '/_portal/assistant', '/_portal/assistant/*', '/_portal/directories', '/_portal/directories/*', '/_portal/apiversion', '/_portal/prepare', '/_portal/admin/*']) app.use(p, auth);
+  for (const p of ['/_portal/session', '/_portal/token', '/_portal/settings', '/_portal/push/*', '/_portal/notifications', '/_portal/notifications/*', '/_portal/overview', '/_portal/catalog', '/_portal/search', '/_portal/pricing', '/_portal/pricing/*', '/_portal/assistant', '/_portal/assistant/*', '/_portal/directories', '/_portal/directories/*', '/_portal/apiversion', '/_portal/prepare', '/_portal/admin/*', '/_portal/operations', '/_portal/operations/*']) app.use(p, auth);
   realRoutes(app);
   pricingRoutes(app);
   assistantRoutes(app);
   adminRoutes(app);
+  operationRoutes(app);
 
   app.get('/_portal/session', async (c) => {
     const p = c.get('principal');
