@@ -13,7 +13,7 @@ import { Badge, Button, Card, CodeBlock, ErrorNotice, Field, IdText, Input, KV, 
 import { Panel, useConfirm, useToast } from '@/components/overlay';
 import { DataTable } from '@/components/table';
 import { ResourceIcon, StateBadge } from '@/components/resource';
-import { ResourceGroupSelect } from '@/components/pickers';
+import { MoveResourcesPanel } from '@/components/rgmove';
 
 export default function ResourceGroup() {
   const { sub, name: rawName } = useParams<{ sub: string; name: string }>();
@@ -35,7 +35,6 @@ export default function ResourceGroup() {
   const [lockOpen, setLockOpen] = useState(false);
   const [lock, setLock] = useState({ name: '', level: 'CanNotDelete', notes: '' });
   const [moveOpen, setMoveOpen] = useState(false);
-  const [moveTarget, setMoveTarget] = useState('');
 
   if (rg.error) return <ErrorNotice error={rg.error} onRetry={rg.reload} />;
   const g = rg.data;
@@ -72,7 +71,7 @@ export default function ResourceGroup() {
         <Link className="btn" href={`/create?sub=${sub}&rg=${encodeURIComponent(name)}`}><Plus size={16} />{t('common.create')}</Link>
         <Button variant="ghost" icon={RefreshCw} onClick={() => { void rg.reload(); void res.reload(); }}>{t('common.refresh')}</Button>
         <Button icon={FileCode2} onClick={async () => { try { setExported(await arm.post(`${id}/exportTemplate`, { resources: ['*'], options: 'IncludeParameterDefaultValue' })); } catch (e) { toast.error(e); } }}>{t('rg.export')}</Button>
-        <Button icon={ArrowRightLeft} disabled={!selected.size} onClick={() => setMoveOpen(true)}>{t('rg.move')}</Button>
+        <Button icon={ArrowRightLeft} disabled={!res.data?.length} onClick={() => setMoveOpen(true)}>{t('rg.move')}</Button>
         <Link className="btn" href={`/iam?scope=${encodeURIComponent(id)}`}><ShieldCheck size={16} />{t('nav.iam')}</Link>
         <span className="spacer" />
         <Button variant="danger" icon={Trash2} disabled={!selected.size} onClick={deleteSelected}>{t('rg.deleteSelected')}</Button>
@@ -150,9 +149,7 @@ export default function ResourceGroup() {
         </Field>
         <Field label={t('rg.lockNotes')} htmlFor="lno"><Input id="lno" value={lock.notes} onChange={(e) => setLock({ ...lock, notes: e.target.value })} /></Field>
       </Panel>
-      <Panel open={moveOpen} onClose={() => setMoveOpen(false)} title={t('rg.moveTitle')} subtitle={[...selected].map((x) => x.split('/').pop()).join(', ')} footer={<><Button variant="primary" disabled={!moveTarget || moveTarget === name} onClick={async () => { try { await arm.post(`${id}/moveResources`, { resources: [...selected], targetResourceGroup: rgId(sub, moveTarget) }); toast.ok(t('rg.moved')); setMoveOpen(false); setSelected(new Set()); await res.reload(); } catch (e) { toast.error(e); } }}>{t('rg.move')}</Button><Button onClick={() => setMoveOpen(false)}>{t('common.cancel')}</Button></>}>
-        <Field label={t('rg.moveTarget')} htmlFor="mt"><ResourceGroupSelect id="mt" sub={sub} value={moveTarget} onChange={(v) => setMoveTarget(v)} /></Field>
-      </Panel>
+      <MoveResourcesPanel open={moveOpen} onClose={() => setMoveOpen(false)} sub={sub} name={name} location={g?.location ?? 'westeurope'} all={(res.data ?? []).map((r) => r.id)} selected={[...selected]} onMoved={() => { setSelected(new Set()); void res.reload(); }} />
     </>
   );
 }

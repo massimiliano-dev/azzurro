@@ -131,6 +131,36 @@ async function armCall<T>(method: string, path: string, apiVersion: string, body
   }
 }
 
+/**
+ * Operazione ARM a lunga durata (202 + Location o Azure-AsyncOperation, come moveResources o
+ * l'eliminazione di un gruppo su Azure reale): si interroga l'indirizzo indicato finché finisce.
+ * L'emulatore risponde subito, Azure reale può metterci minuti.
+ */
+export async function armLongRunning<T = any>(method: string, path: string, body: unknown, apiVersion = DEFAULT_API, onWait?: (seconds: number) => void): Promise<T | null> {
+  const first = await armCall<T>(method, path, apiVersion, body);
+  if (first.status !== 202 && first.status !== 201) return first.data;
+  const async = first.headers.get('azure-asyncoperation');
+  const loc = first.headers.get('location');
+  const target = async ?? loc;
+  if (!target) return first.data;
+  const url = `/api/arm${target.replace(/^https?:\/\/[^/]+/, '')}`;
+  let retry = Number(first.headers.get('retry-after') ?? 5);
+  const started = Date.now();
+  for (;;) {
+    onWait?.(Math.round((Date.now() - started) / 1000));
+    await new Promise((r) => setTimeout(r, Math.min(Math.max(retry, 2), 30) * 1000));
+    const r = await request<any>('GET', url);
+    retry = Number(r.headers.get('retry-after') ?? retry);
+    if (async) {
+      const st = String(r.data?.status ?? '');
+      if (/^(succeeded)$/i.test(st)) return r.data as T;
+      if (/^(failed|canceled)$/i.test(st)) throw new ApiError(400, r.data?.error?.code ?? 'OperationFailed', r.data?.error?.message ?? st, r.data?.error?.details);
+    } else if (r.status !== 202) {
+      return r.data as T;
+    }
+  }
+}
+
 export const arm = {
   get: async <T = any>(path: string, apiVersion = DEFAULT_API, query?: Record<string, string | undefined>) => (await armCall<T>('GET', path, apiVersion, undefined, query)).data,
   put: async <T = any>(path: string, body: unknown, apiVersion = DEFAULT_API) => (await armCall<T>('PUT', path, apiVersion, body)).data,

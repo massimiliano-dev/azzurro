@@ -1119,3 +1119,11 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
 .model-prices, .model-prices > .card { min-width: 0; max-width: 100%; }
 .model-prices .scroll-x, .model-prices .table-wrap { max-width: 100%; overflow-x: auto; }
 .model-prices td.note { min-width: 240px; }
+/* spostamento risorse: passi con stato */
+.move-steps { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 8px; }
+.move-steps li { display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
+.move-steps li.run, .move-steps li.ok { color: var(--text); }
+.move-steps li.ok svg { color: var(--success, #1f9d55); }
+.move-steps li.error { color: var(--danger, #d1342f); font-weight: 600; }
+.move-steps .dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.move-steps .spin { animation: ai-spin 1s linear infinite; }
