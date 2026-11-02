@@ -1087,7 +1087,7 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
 .ai-dock .ai-bar { padding: 8px 12px; }
 .ai-dock .ai-bar .seg button .mono { display: none; }
 .ai-dock .ai-log { max-height: none; min-height: 0; flex: 1; }
-.ai-dock .ai-row { grid-template-columns: 1fr; gap: 4px; padding: 10px 14px; }
+.ai-dock .ai-row { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 10px 14px; }
 .ai-dock .ai-empty { padding: 24px 16px; }
 .ai-dock .ai-empty .display-sm { font-size: 30px; }
 .ai-dock .ai-compose { padding: 10px 12px; }
