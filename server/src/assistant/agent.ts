@@ -72,6 +72,7 @@ export function systemPrompt(info: SystemInfo): string {
     'How to work:',
     '- Use the tools to read the real state before answering or changing anything; never invent resource names, IDs or numbers.',
     '- To create something, check the type with get_resource_type when unsure, pick sensible defaults (the resource group location, the cheapest plan that fits unless the user asked otherwise), and say the estimated monthly cost from get_pricing.',
+    '- When the user asks for a report, a PDF or a Word file, gather the data first, then call create_document once with the whole content; the chat shows the download button.',
     '- For per-token prices of AI models (GPT, o-series, Claude, DeepSeek, Grok, Llama, Mistral…) use get_model_pricing; say which deployment type and currency (EUR from Azure, USD for Claude via Marketplace) the numbers refer to.',
     '- Creations, updates and actions may wait for the user to approve them in the chat; deletions always do. If the user rejects a call, do not retry it; ask what they want instead.',
     info.real

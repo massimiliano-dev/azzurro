@@ -12,6 +12,7 @@ import { claude, claudeAvailable, claudeModel } from './claude.ts';
 import { claudeCode, claudeCodeAccount, claudeCodeAvailableFor, claudeCodeModel, claudeCodeOwner } from './claudecode.ts';
 import { local, localAvailable, localModel, localUrl, openai, openaiAvailable, openaiModel, probeLocal } from './openai.ts';
 import type { Provider } from './provider.ts';
+import { mimeOf, type StoredDocument } from './documents.ts';
 import { realJson, sessionDirectory, type Directory } from '../real/proxy.ts';
 
 const PROVIDERS: Record<Provider['id'], { p: Provider; available: (userId: string) => boolean }> = {
@@ -174,6 +175,19 @@ export function assistantRoutes(app: Hono<AppEnv>): void {
     const run = runs.get(c.req.param('id'));
     if (run && !run.done && run.userId === c.get('principal').oid) run.abort.abort('user');
     return c.body(null, 204);
+  });
+
+  /** Scarica un documento creato dall'assistente (solo chi l'ha generato). */
+  app.get('/_portal/assistant/documents/:id', async (c) => {
+    const d = await store.get<StoredDocument>('assistantDocument', c.req.param('id'));
+    if (!d || d.userId !== c.get('principal').oid) throw new HttpError(404, 'not_found', 'Document not found.');
+    const bytes = Buffer.from(d.content, 'base64');
+    return c.body(bytes, 200, {
+      'Content-Type': mimeOf(d.format),
+      'Content-Length': String(bytes.length),
+      'Content-Disposition': `attachment; filename="${d.filename}"; filename*=UTF-8''${encodeURIComponent(d.filename)}`,
+      'Cache-Control': 'private, no-store',
+    });
   });
 
   app.delete('/_portal/assistant/conversations/:id', async (c) => {

@@ -94,6 +94,10 @@ npm run service:uninstall
 
 L'app installata risponde su **http://azzurro.localhost** (API su `http://localhost:4400`), così le porte 3000 e 4000 restano libere per lo sviluppo. Indirizzo e porte si cambiano con `AZZURRO_HOST`, `AZZURRO_WEB_PORT` e `AZZURRO_API_PORT` prima di `service:install`; il nuovo indirizzo va aggiunto agli URI di reindirizzamento dell'app Entra. Il servizio parte a ogni accesso, si riavvia se si chiude, apre Docker Desktop in background se non è avviato, attende PostgreSQL e poi avvia API e portale. Gira da una copia dell'app perché macOS non lascia ai servizi in background leggere la cartella Scrivania.
 
+## Documenti PDF e Word dall'assistente
+
+Chiedi all'assistente un report, un PDF o un file Word («fammi un PDF con i costi di questo mese»): raccoglie i dati con gli altri strumenti e chiama `create_document`, che trasforma il suo Markdown (titoli, testo, elenchi, tabelle, codice) in PDF (`pdfkit`, con Arial di macOS) o `.docx` (`docx`). Funziona con tutti i provider. Il file resta nel database, legato a chi l'ha chiesto, e si scarica dal pulsante nella chat.
+
 ## Assistente con l'account Claude Code del Mac
 
 Invece di una chiave API, l'assistente può usare l'account Claude Code già collegato su questo Mac (abbonamento Pro/Max). Si attiva in **Impostazioni → Configurazione del server → «Usa il mio account Claude Code»**: vale solo per l'amministratore che lo attiva, perché i termini di Anthropic non permettono di usare un abbonamento per conto di altri utenti. Funziona tramite Claude Agent SDK, che esegue il binario ufficiale di Claude Code: login e token restano a Claude Code, Azzurro non li legge né li conserva. Gli strumenti di Claude Code (terminale, file, web) e le impostazioni personali (`~/.claude`, CLAUDE.md) sono esclusi: l'assistente ha solo gli strumenti di Azzurro, con le stesse conferme. Consuma i limiti del piano; le sessioni finiscono in `~/Library/Application Support/Azzurro/claude-code`. Se Claude Code non è collegato: `claude` nel Terminale e accedi.

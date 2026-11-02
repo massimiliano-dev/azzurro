@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, Check, ChevronRight, MessageSquarePlus, Sparkles, Square, Trash2, X } from 'lucide-react';
+import { ArrowUp, Check, ChevronRight, FileDown, MessageSquarePlus, Sparkles, Square, Trash2, X } from 'lucide-react';
 import { portal } from '@/lib/api';
 import { getSSE, postSSE } from '@/lib/sse';
 import { invalidateAll } from '@/lib/cache';
@@ -20,7 +20,7 @@ type Item =
 
 const SUGGESTIONS: MessageKey[] = ['ai.s1', 'ai.s2', 'ai.s3', 'ai.s4'];
 const DOCK_SUGGESTIONS: MessageKey[] = ['ai.c1', 'ai.c2', 'ai.c3'];
-const TOOL_LABEL: Record<string, MessageKey> = { arm_request: 'ai.tool.arm', graph_request: 'ai.tool.graph', query_costs: 'ai.tool.costs', get_pricing: 'ai.tool.pricing', get_model_pricing: 'ai.tool.pricing', estimate_resource: 'ai.tool.estimate', get_resource_type: 'ai.tool.type' };
+const TOOL_LABEL: Record<string, MessageKey> = { arm_request: 'ai.tool.arm', graph_request: 'ai.tool.graph', query_costs: 'ai.tool.costs', get_pricing: 'ai.tool.pricing', get_model_pricing: 'ai.tool.pricing', create_document: 'ai.tool.document', estimate_resource: 'ai.tool.estimate', get_resource_type: 'ai.tool.type' };
 
 export function AssistantChat({ mode = 'page', context, onClose, onBusy }: { mode?: 'page' | 'dock'; context?: () => Record<string, unknown>; onClose?: () => void; onBusy?: (busy: boolean) => void }) {
   const { t, fmtRelative } = useI18n();
@@ -262,6 +262,19 @@ function Row({ it, pending, onDecide, busy }: { it: Item; pending: string[]; onD
           <span className="p mono">{path ?? it.summary}</span>
           <span className="s mono">{it.status === 'running' ? '…' : it.status === 'rejected' ? t('ai.rejected') : it.status === 'pending' ? t('ai.needsOk') : it.request ? `${it.request.status} · ${it.request.ms}ms` : it.status === 'error' ? t('ai.failed') : 'ok'}</span>
         </button>
+        {it.name === 'create_document' && it.status === 'ok' && (() => {
+          // documento pronto: si scarica dal server, legato all'utente che l'ha chiesto
+          let d: { id?: string; filename?: string; bytes?: number } = {};
+          try { d = JSON.parse(it.preview ?? '{}'); } catch { /* anteprima non JSON */ }
+          return d.id ? (
+            <a className="ai-doc" href={`/api/portal/assistant/documents/${d.id}`} download={d.filename}>
+              <FileDown size={18} aria-hidden />
+              <span className="n">{d.filename}</span>
+              <span className="small muted mono">{d.bytes ? `${Math.max(1, Math.round(d.bytes / 1024))} KB` : ''}</span>
+              <span className="btn primary sm">{t('ai.download')}</span>
+            </a>
+          ) : null;
+        })()}
         {isPending && (
           <div className="ai-approve">
             <p>{it.kind === 'delete' ? t('ai.confirmDelete') : t('ai.confirmWrite')}</p>

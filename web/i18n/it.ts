@@ -130,7 +130,7 @@ const it = {
   'ai.tool.arm': 'ARM',
   'ai.tool.graph': 'Graph',
   'ai.tool.costs': 'Costi',
-  'ai.tool.pricing': 'Listino',
+  'ai.tool.pricing': 'Listino', 'ai.tool.document': 'Documento', 'ai.download': 'Scarica',
   'ai.tool.estimate': 'Stima',
   'ai.tool.type': 'Catalogo',
   'pricing.title': 'Listino prezzi',

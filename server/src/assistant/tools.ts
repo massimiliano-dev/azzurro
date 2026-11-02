@@ -90,6 +90,21 @@ export const TOOL_SPECS: ToolSpec[] = [
     },
   },
   {
+    name: 'create_document',
+    description: 'Create a downloadable PDF or Word (.docx) document when the user asks for a report, a document, a PDF or a Word file. Write the content as Markdown: headings (#, ##, ###), paragraphs, **bold**, *italic*, bullet and numbered lists, GitHub pipe tables (right-align numeric columns with --:), code blocks, links. Gather the real data with the other tools first and put the actual names and numbers in the document; do not repeat the title as the first heading. The chat shows a download button; in your reply just say what the document contains.',
+    schema: {
+      type: 'object',
+      properties: {
+        format: { type: 'string', enum: ['pdf', 'docx'], description: 'pdf or docx (Word)' },
+        title: { type: 'string', description: 'document title, shown at the top' },
+        markdown: { type: 'string', description: 'the document body in Markdown' },
+        filename: { type: 'string', description: 'optional file name without extension' },
+      },
+      required: ['format', 'title', 'markdown'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'estimate_resource',
     description: 'Monthly cost estimate of an existing resource: current plan, cost lines, whether usage is simulated, and whether it is idle (for example a deallocated VM).',
     schema: {
@@ -116,6 +131,7 @@ export const Inputs = {
   query_costs: z.object({ scope: z.string().startsWith('/subscriptions/'), timeframe: z.enum(['MonthToDate', 'TheLastMonth', 'WeekToDate', 'Custom']).optional(), from: z.string().optional(), to: z.string().optional(), granularity: z.enum(['None', 'Daily', 'Monthly']).optional(), group_by: z.array(z.string()).max(2).optional(), forecast: z.boolean().optional() }),
   get_pricing: z.object({ resource_type: z.string().optional() }),
   get_model_pricing: z.object({ query: z.string().max(80).optional(), region: z.string().max(40).optional(), deployment: z.enum(['global', 'datazone', 'regional']).optional() }),
+  create_document: z.object({ format: z.enum(['pdf', 'docx']), title: z.string().min(1).max(200), markdown: z.string().min(1).max(200_000), filename: z.string().max(100).optional() }),
   estimate_resource: z.object({ resource_id: z.string().startsWith('/') }),
   get_resource_type: z.object({ resource_type: z.string().optional() }),
 } as const;
@@ -276,6 +292,11 @@ export async function execute(ctx: ExecCtx, name: string, input: any): Promise<E
       const path = `${input.scope.replace(/\/+$/, '')}/providers/Microsoft.CostManagement/${forecast ? 'forecast' : 'query'}`;
       const r = await call(ctx, 'POST', `${path}?api-version=2023-03-01`, body);
       return { content: clip(JSON.stringify({ status: r.status, note: ctx.real ? 'Real Azure Cost Management data for this directory.' : 'Estimated costs in EUR from the emulator, not an Azure invoice.', body: r.json })), isError: r.status >= 400, request: { method: 'POST', path: `${path}?api-version=2023-03-01`, status: r.status, ms: r.ms } };
+    }
+    case 'create_document': {
+      const { createDocument } = await import('./documents.ts');
+      const d = await createDocument(ctx.userId, input.format, input.title, input.markdown, input.filename);
+      return { content: JSON.stringify({ created: true, id: d.id, filename: d.filename, format: d.format, bytes: d.size, note: 'The user downloads it from the button in the chat.' }), isError: false };
     }
     case 'get_model_pricing': {
       const { modelPrices, CLAUDE_PRICES } = await import('../costs/models.ts');

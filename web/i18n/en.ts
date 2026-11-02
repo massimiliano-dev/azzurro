@@ -128,7 +128,7 @@ const en: Dict = {
   'ai.tool.arm': 'ARM',
   'ai.tool.graph': 'Graph',
   'ai.tool.costs': 'Costs',
-  'ai.tool.pricing': 'Prices',
+  'ai.tool.document': 'Document', 'ai.download': 'Download', 'ai.tool.pricing': 'Prices',
   'ai.tool.estimate': 'Estimate',
   'ai.tool.type': 'Catalog',
   'pricing.title': 'Price list',
