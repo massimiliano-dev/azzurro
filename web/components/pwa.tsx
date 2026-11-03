@@ -16,6 +16,16 @@ interface PwaCtx {
 
 const Ctx = createContext<PwaCtx>({ canInstall: false, install: async () => undefined, online: true, standalone: false });
 
+/** Azzurro risponde? (endpoint pubblico, senza cache) */
+export async function reachable(): Promise<boolean> {
+  try {
+    const r = await fetch('/api/portal/config', { cache: 'no-store' });
+    return r.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 export function PwaProvider({ children }: { children: ReactNode }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [online, setOnline] = useState(true);
@@ -30,9 +40,18 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     const onInstalled = () => setDeferred(null);
-    const onOnline = () => setOnline(true);
-    const onOffline = () => setOnline(false);
-    setOnline(navigator.onLine);
+    // navigator.onLine dice solo se il Mac ha una rete e sbaglia spesso (VPN, adattatori virtuali):
+    // «offline» solo se Azzurro davvero non risponde, e si ricontrolla finché non torna
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = async () => {
+      clearTimeout(timer);
+      const ok = await reachable();
+      setOnline(ok);
+      if (!ok) timer = setTimeout(check, 10_000);
+    };
+    const onOnline = () => void check();
+    const onOffline = () => void check();
+    if (!navigator.onLine) void check();
     setStandalone(window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
     window.addEventListener('beforeinstallprompt', onPrompt);
     window.addEventListener('appinstalled', onInstalled);
@@ -43,6 +62,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('appinstalled', onInstalled);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      clearTimeout(timer);
     };
   }, []);
 

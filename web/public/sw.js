@@ -1,5 +1,5 @@
 /* Service worker di Azzurro: shell offline + notifiche push. */
-const VERSION = 'azzurro-v3';
+const VERSION = 'azzurro-v4';
 const SHELL = ['/offline', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/badge-96.png', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
