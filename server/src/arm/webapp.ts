@@ -1,6 +1,7 @@
 /** Comportamenti di App Service: configurazione generale, domini personalizzati, verifica DNS. */
 import { resolveCname, resolveTxt, resolve4 } from 'node:dns/promises';
 import * as store from '../db/store.ts';
+import { armError } from './context.ts';
 
 /** Impostazioni generali di un'app (config/web) come le restituisce Azure. */
 export function defaultSiteConfig(site: any): any {
@@ -139,4 +140,78 @@ export function containerLog(site: any): string {
     if (e.kind !== 'stop') lines.push(...startup(t + 2000));
   }
   return lines.join('\n') + '\n';
+}
+
+// ---------------- slot di distribuzione ----------------
+
+/** Slot consentiti dal livello del piano, come App Service (Free, Shared e Basic: nessuno). */
+export const maxSlots = (tier: string): number => (/^(free|shared|basic|dynamic)$/i.test(tier) ? 0 : /^standard$/i.test(tier) ? 5 : 20);
+
+/** Nuovo slot: area, tipo e piano dell'app di produzione; rispetta il limite di slot del piano. */
+export async function prepareSlot(rec: any, siteId: string): Promise<void> {
+  const site = await store.get<any>('resource', siteId);
+  if (!site) return;
+  rec.location = site.location;
+  rec.kind ??= site.kind;
+  rec.properties.serverFarmId ??= site.properties?.serverFarmId;
+  const plan = rec.properties.serverFarmId ? await store.get<any>('resource', rec.properties.serverFarmId) : null;
+  const max = maxSlots(plan?.sku?.tier ?? 'Standard');
+  const depth = siteId.split('/').length + 2;
+  const slots = (await store.list<any>('resource', { prefix: `${siteId.toLowerCase()}/slots/` })).filter((x) => x.id.split('/').length === depth);
+  if (slots.length >= max) throw armError(409, 'Conflict', `Cannot create more than ${max} deployment slots for this site.`);
+}
+
+/** Impostazioni generali che restano allo slot nello scambio (come documentato da App Service). */
+const STAY_WEB = new Set(['alwaysOn', 'ipSecurityRestrictions', 'ipSecurityRestrictionsDefaultAction', 'scmIpSecurityRestrictions', 'scmIpSecurityRestrictionsDefaultAction', 'scmIpSecurityRestrictionsUseMain', 'cors', 'vnetName', 'vnetRouteAllEnabled', 'minTlsVersion', 'scmMinTlsVersion', 'http20Enabled', 'ftpsState', 'numberOfWorkers']);
+
+/**
+ * POST {sito}[/slots/{slot}]/slotsswap { targetSlot }: scambia stack, impostazioni generali, impostazioni
+ * dell'app e stringhe di connessione tra due slot («production» è l'app). Restano al loro posto le impostazioni
+ * di slot (config/slotConfigNames), quelle *_EXTENSION_VERSION, domini, certificati, scalabilità e rete.
+ */
+export async function swapSlots(siteId: string, source: string, target: string, put: (id: string, properties: any) => Promise<void>): Promise<void> {
+  const norm = (s: string) => (!s || s.toLowerCase() === 'production' ? 'production' : s);
+  if (!target) throw armError(400, 'BadRequest', "The 'targetSlot' parameter is required.");
+  const a = norm(source);
+  const b = norm(target);
+  if (a.toLowerCase() === b.toLowerCase()) throw armError(400, 'BadRequest', 'The source and target slots of a swap must be different.');
+  const idOf = (s: string) => (s === 'production' ? siteId : `${siteId}/slots/${s}`);
+  const recA = await store.get<any>('resource', idOf(a));
+  const recB = await store.get<any>('resource', idOf(b));
+  if (!recA || !recB) throw armError(404, 'NotFound', `Cannot find slot '${recA ? b : a}' for site '${siteId.split('/').pop()}'.`);
+  const sticky = (await store.get<any>('resource', `${siteId}/config/slotConfigNames`))?.properties ?? {};
+  const names = (k: string) => new Set<string>((sticky[k] ?? []).map((x: string) => x.toLowerCase()));
+  const stickyApp = names('appSettingNames');
+  const stickyConn = names('connectionStringNames');
+  const cfg = async (s: string, name: string) => {
+    const { provisioningState: _, ...p } = (await store.get<any>('resource', `${idOf(s)}/config/${name}`))?.properties ?? {};
+    return p as Record<string, any>;
+  };
+  // a riceve ciò che si sposta da b e tiene ciò che resta suo
+  const swapped = (from: Record<string, any>, own: Record<string, any>, stays: (k: string) => boolean) => ({
+    ...Object.fromEntries(Object.entries(from).filter(([k]) => !stays(k))),
+    ...Object.fromEntries(Object.entries(own).filter(([k]) => stays(k))),
+  });
+  const rules: [string, (k: string) => boolean][] = [
+    ['appsettings', (k) => stickyApp.has(k.toLowerCase()) || /_EXTENSION_VERSION$/i.test(k)],
+    ['connectionstrings', (k) => stickyConn.has(k.toLowerCase())],
+    ['web', (k) => STAY_WEB.has(k)],
+  ];
+  const webOf: Record<string, any> = {};
+  for (const [name, stays] of rules) {
+    const x = await cfg(a, name);
+    const y = await cfg(b, name);
+    const nx = swapped(y, x, stays);
+    const ny = swapped(x, y, stays);
+    await put(`${idOf(a)}/config/${name}`, nx);
+    await put(`${idOf(b)}/config/${name}`, ny);
+    if (name === 'web') Object.assign(webOf, { [a]: nx, [b]: ny });
+  }
+  // stack sul record (log del contenitore) e riavvio di entrambi, come fa lo scambio
+  for (const [s, rec] of [[a, recA], [b, recB]] as const) {
+    rec.properties.siteConfig = { ...(rec.properties.siteConfig ?? {}), linuxFxVersion: webOf[s].linuxFxVersion ?? rec.properties.siteConfig?.linuxFxVersion };
+    (rec._events ??= []).push({ at: new Date().toISOString(), kind: 'restart' });
+    rec._events = rec._events.slice(-50);
+    await store.replaceData('resource', rec.id, rec);
+  }
 }

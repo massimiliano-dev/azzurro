@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { WebAppConfig, WebAppDomains, WebAppLogs, WebAppSecurity } from './webapp';
+import { WebAppSlots } from './slots';
 import { PlanScale, WebAppPlan } from './plan';
 import { DbConnect, DbDatabases, DbKind, DbNetworking, DbParams, dbKind } from './database';
 import { CosmosExplorer, StorageData } from './data';
@@ -34,6 +35,7 @@ export function useServiceTabs(type: string | undefined, id: string, r: any, rel
       { key: 'domains', label: L('Domini personalizzati', 'Custom domains'), render: () => <WebAppDomains id={id} site={r} reload={reload} /> },
       { key: 'security', label: L('Sicurezza e autenticazione', 'Security and authentication'), render: () => <WebAppSecurity id={id} site={r} reload={reload} /> },
       { key: 'logs', label: L('Log', 'Logs'), render: () => <WebAppLogs id={id} site={r} /> },
+      ...(t === 'microsoft.web/sites' ? [{ key: 'slots', label: L('Slot di distribuzione', 'Deployment slots'), render: () => <WebAppSlots id={id} site={r} /> }] : []),
     ];
   }
   if (t === 'microsoft.web/serverfarms') return [{ key: 'scale', label: L('Piano e scalabilità', 'Plan and scale'), render: () => <PlanScale planId={id} onChanged={reload} /> }];

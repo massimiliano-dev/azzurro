@@ -65,7 +65,7 @@ export interface TypeDef {
   actions?: Record<string, (res: any, ctx: ActionCtx) => any>;
   writeOnly?: string[];
   inlineChildren?: { prop: string; type: string }[];
-  hooks?: ('identity' | 'aks' | 'vm' | 'servicebus' | 'eventhub' | 'sqlserver' | 'kvaccess' | 'kvsecret' | 'uami' | 'vnetSubnetIp' | 'siteconfig' | 'hostname' | 'redisdb' | 'akspool' | 'carevision')[];
+  hooks?: ('identity' | 'aks' | 'vm' | 'servicebus' | 'eventhub' | 'sqlserver' | 'kvaccess' | 'kvsecret' | 'uami' | 'vnetSubnetIp' | 'siteconfig' | 'slot' | 'hostname' | 'redisdb' | 'akspool' | 'carevision')[];
   ui?: { fields?: UiField[]; hidden?: boolean; icon?: string; presets?: Preset[] };
 }
 
@@ -460,14 +460,31 @@ export const TYPES: TypeDef[] = [
     ui: { hidden: true },
   },
   {
+    type: 'Microsoft.Web/sites/slots/config', label: lbl('Configurazione slot', 'Slot configuration'), category: 'web', apiVersions: V('2023-12-01', '2023-01-01', '2022-09-01'), implicit: true,
+    secrets: () => ({}),
+    actions: { list: (r, c) => ({ id: c.id, name: c.name, type: 'Microsoft.Web/sites/slots/config', location: r.location, properties: r.properties ?? {} }) },
+    ui: { hidden: true },
+  },
+  {
     type: 'Microsoft.Web/sites/slots', label: lbl('Slot di distribuzione', 'Deployment slot'), category: 'web', apiVersions: V('2023-12-01', '2023-01-01', '2022-09-01'), tracked: true,
-    defaults: defaults({ kind: 'app', 'properties.enabled': true }),
+    nameRule: { pattern: /^[a-zA-Z0-9][a-zA-Z0-9-]{0,58}$/, code: 'BadRequest', message: 'is not a valid slot name: use letters, numbers and hyphens.' },
+    defaults: defaults({ 'properties.enabled': true, 'properties.httpsOnly': false, 'properties.siteConfig': {} }),
     computed: (r, c) => {
       const host = `${lower(c.names[0])}-${lower(c.name)}.azurewebsites.net`;
-      Object.assign(r.properties, { state: 'Running', defaultHostName: host, hostNames: [host], enabledHostNames: [host], usageState: 'Normal', availabilityState: 'Normal', resourceGroup: c.rg });
+      const scm = `${lower(c.names[0])}-${lower(c.name)}.scm.azurewebsites.net`;
+      Object.assign(r.properties, {
+        state: c.existing?.properties?.state ?? 'Running', defaultHostName: host, hostNames: [host], enabledHostNames: [host, scm],
+        hostNameSslStates: [{ name: host, sslState: 'Disabled', hostType: 'Standard' }, { name: scm, sslState: 'Disabled', hostType: 'Repository' }],
+        usageState: 'Normal', availabilityState: 'Normal', resourceGroup: c.rg, repositorySiteName: c.names[0], slotName: c.name, lastModifiedTimeUtc: c.now,
+      });
     },
-    hooks: ['identity'],
-    actions: { start: () => null, stop: () => null, restart: () => null },
+    hooks: ['identity', 'slot', 'siteconfig'],
+    actions: {
+      start: (r, c) => { r.properties.state = 'Running'; (r._events ??= []).push({ at: c.now, kind: 'start' }); c.save(); return null; },
+      stop: (r, c) => { r.properties.state = 'Stopped'; (r._events ??= []).push({ at: c.now, kind: 'stop' }); c.save(); return null; },
+      restart: (r, c) => { (r._events ??= []).push({ at: c.now, kind: 'restart' }); r._events = r._events.slice(-50); c.save(); return null; },
+      containerlogs: (r) => containerLog(r),
+    },
     ui: { hidden: true },
   },
   {

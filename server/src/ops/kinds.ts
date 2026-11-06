@@ -144,6 +144,13 @@ export async function runPower(ctx: OpCtx, id: string, action: string, apiVersio
   return { href: `/resource?id=${encodeURIComponent(id)}` };
 }
 
+/** Scambio di slot: su Azure 202 e alcuni minuti (riscaldamento delle istanze), segue la Location. */
+export async function runSwap(ctx: OpCtx, siteId: string, source: string, target: string): Promise<{ href: string }> {
+  const path = source === 'production' ? `${siteId}/slotsswap` : `${siteId}/slots/${source}/slotsswap`;
+  await ctx.step('swap', () => ctx.armLongRunning('POST', path, WEB, { targetSlot: target, preserveVnet: true }));
+  return { href: `/resource?id=${encodeURIComponent(siteId)}&tab=slots` };
+}
+
 export async function runDeleteGroup(ctx: OpCtx, id: string): Promise<{ href: string }> {
   await ctx.step('delete', () => ctx.armLongRunning('DELETE', id, RG));
   return { href: '/resource-groups' };

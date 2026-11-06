@@ -1152,3 +1152,26 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
 .log-view { margin: 0; height: 460px; overflow: auto; padding: 12px 16px; background: #0b1020; color: #d6deeb; font: 12px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .log-view .err { color: #ff8a80; }
 .log-view .warn { color: #ffd479; }
+/* metriche di Azure Monitor: una linea, velo leggero, griglia sottile */
+.mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 16px; }
+.mcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px 10px; display: grid; gap: 8px; min-width: 0; }
+.card .mcard { border: 0; padding: 0; }
+.mhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mval { font: 700 20px/1 var(--mono); color: var(--text); }
+.mchart { position: relative; min-width: 0; }
+.mchart svg { display: block; width: 100%; overflow: visible; }
+.mchart .grid { stroke: var(--border); stroke-width: 1; }
+.mchart .axis { stroke: var(--muted); stroke-width: 1; }
+.mchart .tick { font: 400 10.5px var(--mono); fill: var(--muted); }
+.mchart .line { fill: none; stroke: var(--cobalt); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.mchart .area { fill: var(--cobalt); opacity: 0.1; }
+.mchart .dot { fill: var(--cobalt); }
+.mchart .dot.ring { stroke: var(--surface); stroke-width: 2; }
+.mchart .cross { stroke: var(--muted); stroke-width: 1; }
+.mchart .tip { position: absolute; top: -6px; transform: translate(-50%, -100%); background: var(--notte); color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 12px; display: grid; gap: 2px; pointer-events: none; white-space: nowrap; z-index: 2; box-shadow: var(--shadow-pop); }
+.mchart .tip b { font-family: var(--mono); font-weight: 600; }
+:root[data-theme='dark'] .mchart .tip { background: #fff; color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .mchart .tip { background: #fff; color: var(--ink); } }
+/* intestazioni delle schede: se le azioni non ci stanno vanno a capo invece di uscire dal bordo */
+.card-head { flex-wrap: wrap; }
+.card-head h2 { min-width: min(100%, 160px); }

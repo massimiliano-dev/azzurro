@@ -1,6 +1,6 @@
 import * as store from '../db/store.ts';
 import { costManagement } from '../costs/query.ts';
-import { analyzeCustomHostname } from './webapp.ts';
+import { analyzeCustomHostname, swapSlots } from './webapp.ts';
 import { paramsFor, paramView, validateParam } from './serverParams.ts';
 import { enrichBudget } from '../costs/budgets.ts';
 import { HttpError } from '../errors.ts';
@@ -14,8 +14,8 @@ import { bindArmRequest, deleteDeployment, deploymentAction, getDeployment, list
 import { buildId, parseArmPath, type ArmPath } from './path.ts';
 import { typeDef } from './catalog.ts';
 import { accountModels } from './aimodels.ts';
-import { authorize } from './context.ts';
-import { diagnosticCategories, metricDefinitions } from './monitoring.ts';
+import { authorize, checkLocks } from './context.ts';
+import { diagnosticCategories, metricDefinitions, metricValues } from './monitoring.ts';
 import { listRecordSets } from './network.ts';
 
 const API_VERSION = /^\d{4}-\d{2}-\d{2}(-[a-z]+)?$/i;
@@ -202,12 +202,12 @@ async function routeRes(ctx: ArmCtx, method: string, p: Res, q: URLSearchParams,
   }
 
   // ---- Azure Monitor sulla risorsa: categorie di diagnostica e definizioni delle metriche ----
-  if (ns === 'microsoft.insights' && tl === 1 && (t0 === 'diagnosticsettingscategories' || t0 === 'metricdefinitions') && scopeKind(scope) === 'resource') {
+  if (ns === 'microsoft.insights' && tl === 1 && (t0 === 'diagnosticsettingscategories' || t0 === 'metricdefinitions' || t0 === 'metrics') && scopeKind(scope) === 'resource') {
     if (method !== 'GET') throw armError(405, 'MethodNotAllowed', 'The requested method is not allowed.');
     const res = await loadResource(ctx, scope);
     if (!res) throw armError(404, 'ResourceNotFound', `The Resource '${scope}' was not found.`);
     await authorize(ctx, `${res.type}/read`, res.id);
-    return ok(t0 === 'metricdefinitions' ? metricDefinitions(res) : diagnosticCategories(res, p.names[0]));
+    return ok(t0 === 'metrics' ? metricValues(res, q) : t0 === 'metricdefinitions' ? metricDefinitions(res) : diagnosticCategories(res, p.names[0]));
   }
 
   // ---- azioni a livello di provider ----
@@ -262,6 +262,22 @@ async function routeRes(ctx: ArmCtx, method: string, p: Res, q: URLSearchParams,
     if (op === 'createquerykey' && method === 'POST') return actionResource(ctx, parent, 'createQueryKey', { _name: p.names[1] });
     if (op === 'deletequerykey' && method === 'DELETE') return actionResource(ctx, parent, 'deleteQueryKey', { _name: p.names[1] });
     if (op === 'regenerateadminkey' && method === 'POST') return actionResource(ctx, parent, 'regenerateAdminKey', { _name: p.names[1] });
+  }
+
+  // ---- scambio di slot: POST {sito}/slotsswap o {sito}/slots/{slot}/slotsswap { targetSlot } ----
+  if (ns === 'microsoft.web' && t0 === 'sites' && method === 'POST' && p.types.at(-1)?.toLowerCase() === 'slotsswap' && tl === n + 1 && (tl === 2 || (tl === 3 && p.types[1].toLowerCase() === 'slots'))) {
+    const siteId = buildId(scope, p.ns, ['sites'], [p.names[0]]);
+    const actionId = tl === 3 ? buildId(scope, p.ns, ['sites', 'slots'], p.names) : siteId;
+    if (!(await loadResource(ctx, actionId))) throw armError(404, 'ResourceNotFound', `The Resource '${tl === 3 ? 'Microsoft.Web/sites/slots' : 'Microsoft.Web/sites'}/${p.names.join('/')}' under resource group '${p.rg}' was not found.`);
+    await authorize(ctx, `Microsoft.Web/sites/${tl === 3 ? 'slots/' : ''}slotsswap/action`, actionId);
+    await checkLocks(ctx, siteId, 'action');
+    const sys: ArmCtx = { ...ctx, access: { bypass: true, principalIds: [], grants: [] } as any };
+    await swapSlots(siteId, tl === 3 ? p.names[1] : 'production', String(body?.targetSlot ?? ''), async (id, properties) => {
+      const parsed = parseArmPath(id);
+      if (parsed.k !== 'res') throw new Error(`id non valido: ${id}`);
+      await putResource(sys, resInfo(parsed as Res), { properties }, '2023-12-01');
+    });
+    return { status: 200 };
   }
 
   // ---- impostazioni delle app Web statiche: lettura con listAppSettings / listFunctionAppSettings ----

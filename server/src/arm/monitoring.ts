@@ -98,6 +98,117 @@ export function metricDefinitions(res: any) {
 
 const GRAINS = ['PT1M', 'PT5M', 'PT15M', 'PT30M', 'PT1H', 'PT6H', 'PT12H', 'P1D'];
 const minutes = (d: string) => (d.startsWith('P1D') ? 1440 : Number(/(\d+)H/.exec(d)?.[1] ?? 0) * 60 + Number(/(\d+)M/.exec(d)?.[1] ?? 0));
+
+// ---------------- valori delle metriche (serie sintetiche: l'emulatore non ha traffico reale) ----------------
+
+const h32 = (str: string) => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+const rnd = (seed: number, n: number) => {
+  let x = (seed ^ Math.imul(n, 2654435761)) >>> 0;
+  x ^= x >>> 16; x = Math.imul(x, 2246822507) >>> 0; x ^= x >>> 13; x = Math.imul(x, 3266489909) >>> 0; x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+};
+/** 0 alle 3 di notte, 1 alle 15 (UTC): il ritmo giornaliero del carico. */
+const dayRhythm = (minute: number) => 0.5 - 0.5 * Math.cos((((minute / 60) % 24) - 3) / 24 * 2 * Math.PI);
+
+/** Valore per minuto, deterministico per risorsa + metrica + minuto, nei limiti dell'unità. */
+function sampler(resId: string, [name, unit, agg]: Metric): (minute: number) => number {
+  const seed = h32(`${resId.toLowerCase()}|${name}`);
+  const lvl = seed % 1000 / 1000;
+  const n = name.toLowerCase();
+  if (/5xx|4xx|fail|error|deadlock|throttl|abort|deadletter|restart|unhealthy|ddos/.test(n)) {
+    return (m) => (rnd(seed, Math.floor(m / 10)) < 0.06 ? 1 + Math.floor(rnd(seed, m) * 3) : 0);
+  }
+  if (/availab|healthcheck/.test(n)) return (m) => 99.6 + 0.4 * rnd(seed, m);
+  const day = (m: number) => dayRhythm(m);
+  switch (unit) {
+    case 'Percent':
+      if (/storage|used|capacity|memory/.test(n)) return (m) => Math.min(100, 20 + lvl * 40 + 12 * day(m) + 2 * rnd(seed, m));
+      return (m) => Math.max(0, Math.min(100, 8 + lvl * 20 + 40 * day(m) + 10 * (rnd(seed, m) - 0.5)));
+    case 'Bytes':
+      if (agg === 'Total') return (m) => (50 + 950 * day(m)) * 1024 * (0.6 + 0.8 * rnd(seed, m));
+      return (m) => (200 + lvl * 1300) * 1048576 * (0.97 + 0.06 * rnd(seed, m) + 0.05 * day(m));
+    case 'BytesPerSecond': return (m) => (5 + 200 * day(m)) * 1024 * (0.6 + 0.8 * rnd(seed, m));
+    case 'CountPerSecond': return (m) => (0.5 + 20 * day(m)) * (0.6 + 0.8 * rnd(seed, m));
+    case 'Milliseconds': return (m) => 40 + lvl * 60 + 80 * day(m) + 30 * rnd(seed, m);
+    case 'Seconds':
+      if (agg === 'Total') return (m) => (1 + 10 * day(m)) * (0.6 + 0.8 * rnd(seed, m));
+      return (m) => 0.08 + 0.25 * day(m) + 0.1 * rnd(seed, m);
+    default: // Count
+      if (agg === 'Total' || agg === 'Count') return (m) => Math.round((2 + 40 * day(m)) * (0.5 + rnd(seed, m)) * (/token/.test(n) ? 200 : 1));
+      return (m) => Math.round(2 + lvl * 15 + 6 * day(m) + 2 * rnd(seed, m));
+  }
+}
+
+/** Da quando la risorsa è spenta (VM deallocata o arrestata, app web arrestata): valori a zero. */
+function stoppedSince(res: any): number | null {
+  const t = String(res.type).toLowerCase();
+  if (t === 'microsoft.compute/virtualmachines' && ['stopped', 'deallocated'].includes(res._power)) return 0; // shortcut: VM spenta = zero su tutto l'intervallo, l'emulatore non registra quando si è spenta
+  if ((t === 'microsoft.web/sites' || t === 'microsoft.web/sites/slots') && res.properties?.state === 'Stopped') {
+    const stop = [...(res._events ?? [])].reverse().find((e: any) => e.kind === 'stop');
+    return stop ? Date.parse(stop.at) : 0;
+  }
+  return null;
+}
+
+const iso = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+const round = (v: number) => (Math.abs(v) >= 100 ? Math.round(v * 100) / 100 : Math.round(v * 10000) / 10000);
+
+/** GET {risorsa}/providers/Microsoft.Insights/metrics (timespan, interval, aggregation, metricnames) come Azure Monitor. */
+export function metricValues(res: any, q: URLSearchParams) {
+  const m = monitorOf(res.type);
+  const [ns, ...types] = String(res.type).split('/');
+  const fail = (msg: string) => armError(400, 'BadRequest', msg);
+  if (!m?.defs.length) throw fail(`Failed to find metric configuration for provider: ${ns}, resource Type: ${types.join('/')}, metric: ${q.get('metricnames') ?? ''}, Valid metrics: `);
+  const names = (q.get('metricnames') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const defs = (names.length ? names : [m.defs[0][0]]).map((n) => {
+    const d = m.defs.find(([x]) => x.toLowerCase() === n.toLowerCase());
+    if (!d) throw fail(`Failed to find metric configuration for provider: ${ns}, resource Type: ${types.join('/')}, metric: ${n}, Valid metrics: ${m.defs.map(([x]) => x).join(',')}`);
+    return d;
+  });
+  const grain = (q.get('interval') ?? 'PT1M').toUpperCase();
+  if (!GRAINS.includes(grain)) throw fail(`Invalid time grain '${grain}'. Supported time grains: ${GRAINS.join(', ')}.`);
+  const step = minutes(grain) * 60_000;
+  const now = Date.now();
+  const [a, b] = (q.get('timespan') ?? `${iso(now - 3600_000)}/${iso(now)}`).split('/');
+  const from = Date.parse(a);
+  const to = Date.parse(b);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || from >= to) throw fail(`Invalid timespan '${q.get('timespan')}'. Expected 'startDateTime/endDateTime' in ISO 8601.`);
+  const start = Math.floor(from / step) * step;
+  const buckets = Math.ceil((to - start) / step);
+  if (buckets > 10_000) throw fail(`The requested timespan and time grain would return ${buckets} data points; the maximum is 10000.`);
+  const aggs = (q.get('aggregation') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+    .map((x) => { const g = AGGS.find((y) => y.toLowerCase() === x.toLowerCase()); if (!g) throw fail(`Invalid aggregation '${x}'. Supported: ${AGGS.join(', ')}.`); return g; });
+  const created = Date.parse(res._created ?? '') || 0;
+  const off = stoppedSince(res);
+  const value = defs.map((d) => {
+    const sample = sampler(res.id, d);
+    const use = aggs.length ? aggs : [d[2]];
+    const data = Array.from({ length: buckets }, (_, i) => {
+      const t = start + i * step;
+      const point: Record<string, unknown> = { timeStamp: iso(t) };
+      if (t + step <= created || t > now) return point;
+      // fino a 60 campioni per secchio: medie, minimi e massimi dei valori al minuto
+      // il secchio in corso copre solo i minuti già trascorsi
+      const k = Math.min(step, now - t + 60_000) / 60_000 | 0 || 1;
+      const stride = Math.max(1, Math.floor(k / 60));
+      let sum = 0, min = Infinity, max = -Infinity, cnt = 0;
+      for (let j = 0; j < k; j += stride) {
+        const minute = Math.floor(t / 60_000) + j;
+        const v = off !== null && minute * 60_000 >= off ? 0 : sample(minute);
+        sum += v; cnt++; if (v < min) min = v; if (v > max) max = v;
+      }
+      const avg = sum / cnt;
+      for (const g of use) point[g.toLowerCase()] = round(g === 'Average' ? avg : g === 'Minimum' ? min : g === 'Maximum' ? max : g === 'Count' ? k : avg * k);
+      return point;
+    });
+    return {
+      id: `${res.id}/providers/Microsoft.Insights/metrics/${d[0]}`, type: 'Microsoft.Insights/metrics',
+      name: { value: d[0], localizedValue: d[3] }, displayDescription: d[3], unit: d[1], errorCode: 'Success',
+      timeseries: [{ metadatavalues: [], data }],
+    };
+  });
+  return { cost: buckets * defs.length, timespan: `${iso(from)}/${iso(to)}`, interval: grain, value, namespace: res.type, resourceregion: res.location };
+}
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function monitorBeforeWrite(ctx: ArmCtx, info: ResInfo, rec: any): Promise<void> {

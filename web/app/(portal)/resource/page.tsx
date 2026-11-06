@@ -14,6 +14,7 @@ import { ResourceCosts } from '@/components/pricing';
 import { VaultSecrets } from '@/components/vault';
 import { useServiceTabs } from '@/components/blades';
 import { DiagnosticSettings, MetricAlerts, supportsDiagnostics, supportsMetricAlerts } from '@/components/blades/diagnostics';
+import { MetricsTab } from '@/components/blades/metrics';
 import { JsonEditor, PageHeader, Tabs, TagEditor, Toolbar, useTab } from '@/components/page';
 import { Badge, Button, Card, CodeBlock, Empty, ErrorNotice, Field, IdText, Input, KV, Notice, SecretValue, Skeleton, Tags } from '@/components/ui';
 import { Panel, useConfirm, useToast } from '@/components/overlay';
@@ -202,6 +203,7 @@ export default function ResourcePage() {
         ...(listActions.length && !svcTabs.some((s) => KEY_TABS.has(s.key)) ? [{ key: 'keys', label: t('res.keys') }] : []),
         ...(childTypes.length ? [{ key: 'children', label: t('res.children') }] : []),
         ...(info.type?.toLowerCase() === 'microsoft.keyvault/vaults' ? [{ key: 'secrets', label: t('kv.tab') }] : []),
+        ...(supportsMetricAlerts(info.type) ? [{ key: 'metrics', label: locale === 'it' ? 'Metriche' : 'Metrics' }] : []),
         ...(supportsDiagnostics(info.type) ? [{ key: 'diagnostics', label: locale === 'it' ? 'Impostazioni di diagnostica' : 'Diagnostic settings' }] : []),
         ...(supportsMetricAlerts(info.type) ? [{ key: 'alerts', label: locale === 'it' ? 'Avvisi' : 'Alerts' }] : []),
         { key: 'costs', label: t('pricing.tab') },
@@ -268,6 +270,7 @@ export default function ResourcePage() {
       )}
       {svcTabs.find((s) => s.key === tab)?.render()}
       {tab === 'secrets' && <VaultSecrets vaultId={id} />}
+      {tab === 'metrics' && r && info.type && <MetricsTab id={id} type={info.type} />}
       {tab === 'diagnostics' && r && <DiagnosticSettings id={id} r={r} />}
       {tab === 'alerts' && r && <MetricAlerts id={id} r={r} />}
       {tab === 'costs' && <ResourceCosts id={id} type={info.type} apiVersion={apiVersion} />}

@@ -5,7 +5,7 @@ import { HttpError } from '../errors.ts';
 import { readJson } from '../http.ts';
 import type { AppEnv } from '../types.ts';
 import { bindApp, startOperation, type Operation } from './engine.ts';
-import { MOVE_STEPS, runDeleteGroup, runDeleteResources, runMove, runPower } from './kinds.ts';
+import { MOVE_STEPS, runDeleteGroup, runDeleteResources, runMove, runPower, runSwap } from './kinds.ts';
 
 const ARM_ID = /^\/subscriptions\/[0-9a-f-]{36}\/resourceGroups\/[^/]+(\/providers\/.+)?$/i;
 const rgName = (id: string) => decodeURIComponent(id.split('/')[4] ?? id);
@@ -76,6 +76,19 @@ export function operationRoutes(app: Hono<AppEnv>): void {
           title: { it: `${verb.it} ${name}`, en: `${verb.en} ${name}` },
           steps: [{ key: 'action', label: { it: `${verb.it}: richiesta ad Azure e attesa del completamento`, en: `${verb.en}: request to Azure and wait for completion` } }],
           run: (ctx) => runPower(ctx, body.id, body.action, body.apiVersion),
+        });
+        return c.json(op, 202);
+      }
+      case 'swap': {
+        const SLOT = /^(production|[a-zA-Z0-9][a-zA-Z0-9-]{0,58})$/;
+        const { id, source, target } = body;
+        if (!ARM_ID.test(id ?? '') || !/\/providers\/Microsoft\.Web\/sites\/[^/]+$/i.test(id) || !SLOT.test(source ?? '') || !SLOT.test(target ?? '') || source === target) throw bad('id (web app), source and target slots are required and must differ.');
+        const name = decodeURIComponent(String(id).split('/').pop() ?? '');
+        const op = await startOperation({
+          userId: p.oid, cookie, kind: 'swap', target: String(id).split('/providers/')[0],
+          title: { it: `Scambia ${source} ↔ ${target} di ${name}`, en: `Swap ${source} ↔ ${target} of ${name}` },
+          steps: [{ key: 'swap', label: { it: 'Riscaldamento e scambio degli slot', en: 'Warm-up and slot swap' } }],
+          run: (ctx) => runSwap(ctx, id, source, target),
         });
         return c.json(op, 202);
       }

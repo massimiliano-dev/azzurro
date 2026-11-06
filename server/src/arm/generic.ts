@@ -1,4 +1,4 @@
-import { defaultSiteConfig, syncSiteHostnames } from './webapp.ts';
+import { defaultSiteConfig, prepareSlot, syncSiteHostnames } from './webapp.ts';
 import * as store from '../db/store.ts';
 import { tenant } from '../directory.ts';
 import { nowIso, uniqueString, uuid, uuidV5 } from '../ids.ts';
@@ -427,6 +427,7 @@ async function internalPut(ctx: ArmCtx, id: string, body: any, apiVersion = '202
 
 async function runHooks(ctx: ArmCtx, info: ResInfo, rec: any, existing: any, created: boolean) {
   const hooks = info.def?.hooks ?? [];
+  if (hooks.includes('slot') && created) await prepareSlot(rec, info.parentId!);
   if (hooks.includes('identity')) await applyIdentity(ctx, rec, existing);
   if (hooks.includes('uami')) {
     let spId = existing?._miSp;
