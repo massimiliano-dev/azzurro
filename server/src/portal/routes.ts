@@ -162,11 +162,24 @@ export function portalRoutes(app: Hono<AppEnv>): void {
 
   // --- tutto ciò che segue richiede sessione o token ---
   const auth = authenticate('portal');
-  for (const p of ['/_portal/session', '/_portal/token', '/_portal/settings', '/_portal/push/*', '/_portal/notifications', '/_portal/notifications/*', '/_portal/overview', '/_portal/catalog', '/_portal/search', '/_portal/pricing', '/_portal/pricing/*', '/_portal/assistant', '/_portal/assistant/*', '/_portal/directories', '/_portal/directories/*', '/_portal/apiversion', '/_portal/prepare', '/_portal/admin/*', '/_portal/operations', '/_portal/operations/*']) app.use(p, auth);
+  for (const p of ['/_portal/session', '/_portal/token', '/_portal/settings', '/_portal/push/*', '/_portal/notifications', '/_portal/notifications/*', '/_portal/overview', '/_portal/catalog', '/_portal/search', '/_portal/pricing', '/_portal/pricing/*', '/_portal/assistant', '/_portal/assistant/*', '/_portal/directories', '/_portal/directories/*', '/_portal/apiversion', '/_portal/prepare', '/_portal/admin/*', '/_portal/operations', '/_portal/operations/*', '/_portal/myip']) app.use(p, auth);
   realRoutes(app);
   pricingRoutes(app);
   assistantRoutes(app);
   adminRoutes(app);
+
+  /** IP pubblico IPv4 di questo computer, per le regole firewall (Azzurro gira qui: è lo stesso del browser). */
+  let myIp: { ip: string; at: number } | null = null;
+  app.get('/_portal/myip', async (c) => {
+    if (myIp && Date.now() - myIp.at < 10 * 60_000) return c.json({ ip: myIp.ip });
+    for (const url of ['https://api4.ipify.org', 'https://ipv4.icanhazip.com']) {
+      try {
+        const ip = (await (await fetch(url, { signal: AbortSignal.timeout(4000) })).text()).trim();
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) { myIp = { ip, at: Date.now() }; return c.json({ ip }); }
+      } catch { /* prossimo servizio */ }
+    }
+    throw bad('ip_unavailable', 'Could not determine the public IP address of this computer.', 502);
+  });
   operationRoutes(app);
 
   app.get('/_portal/session', async (c) => {

@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Database, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
-import { arm } from '@/lib/api';
+import { arm, portal } from '@/lib/api';
 import { useAsync } from '@/lib/hooks';
 import { money } from '@/lib/money';
 import { useI18n } from '@/i18n';
@@ -201,6 +201,13 @@ export function DbNetworking({ serverId, server, kind, reload }: { serverId: str
   const rules = useAsync(async () => (await arm.get<{ value: any[] }>(`${serverId}/firewallRules`, API[kind])).value, [serverId]);
   const [form, setForm] = useState({ name: '', start: '', end: '' });
   const [busy, setBusy] = useState<string | null>(null);
+  // il tuo IP pubblico già proposto nella nuova regola, come fa il portale Azure
+  const mine = useAsync(async () => (await portal.get<{ ip: string }>('/myip')).ip, []);
+  const num = (a: string) => a.split('.').reduce((n, x) => n * 256 + Number(x), 0);
+  const covered = !!mine.data && (rules.data ?? []).some((r) => num(r.properties?.startIpAddress ?? '255.255.255.255') <= num(mine.data!) && num(mine.data!) <= num(r.properties?.endIpAddress ?? '0.0.0.0'));
+  useEffect(() => {
+    if (mine.data && !covered) setForm((f) => (f.name || f.start ? f : { name: `ClientIPAddress_${new Date().toISOString().slice(0, 10)}`, start: mine.data!, end: mine.data! }));
+  }, [mine.data, covered]);
   const azureRule = (rules.data ?? []).find((r) => r.properties?.startIpAddress === '0.0.0.0' && r.properties?.endIpAddress === '0.0.0.0');
   const publicOn = kind === 'sql' ? server.properties?.publicNetworkAccess !== 'Disabled' : (server.properties?.network?.publicNetworkAccess ?? 'Enabled') !== 'Disabled';
   const ip = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -240,7 +247,11 @@ export function DbNetworking({ serverId, server, kind, reload }: { serverId: str
               <Button size="sm" icon={Plus} loading={busy === 'add'} disabled={!/^[\w.-]{1,128}$/.test(form.name) || !ip.test(form.start) || !ip.test(form.end)}
                 onClick={() => void act('add', () => arm.put(`${serverId}/firewallRules/${form.name}`, { properties: { startIpAddress: form.start, endIpAddress: form.end } }, API[kind]), () => { setForm({ name: '', start: '', end: '' }); rules.reload(); })}>{L('Aggiungi', 'Add')}</Button>
             </div>
-            <p className="small muted">{L('Per collegarti da questo computer aggiungi il tuo IP pubblico (lo trovi cercando «what is my ip»).', 'To connect from this computer add your public IP (search "what is my ip").')}</p>
+            <p className="small muted">{mine.data
+              ? covered
+                ? L(`Il tuo IP pubblico (${mine.data}) è già consentito.`, `Your public IP (${mine.data}) is already allowed.`)
+                : L(`Il tuo IP pubblico (${mine.data}) è già inserito nella nuova regola: premi Aggiungi per collegarti da questo computer.`, `Your public IP (${mine.data}) is already filled in: press Add to connect from this computer.`)
+              : L('Per collegarti da questo computer aggiungi il tuo IP pubblico.', 'To connect from this computer add your public IP.')}</p>
           </div>
         )}
       </Card>
