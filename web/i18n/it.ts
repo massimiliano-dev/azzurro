@@ -55,7 +55,7 @@ const it = {
   'home.favorites': 'Preferiti', 'res.favorite': 'Preferita', 'res.unfavorite': 'Togli dai preferiti',
   'trace.live': 'Diretta',
   'dir.notMultitenant': 'L\'app Azzurro in Entra è ancora a tenant singolo, quindi le directory fuori dal tenant di accesso non la conoscono. In Entra: Registrazioni app › Azzurro › Autenticazione › Tipi di account supportati › multi-tenant, oppure esegui scripts/azure-app-setup.sh.',
-  'res.openFoundry': 'Apri in Azure AI Foundry', 'res.foundryLocal': 'La risorsa esiste solo nell\'emulatore: passa a una directory Azure reale per aprirla nel portale Foundry.',
+  'res.browse': 'Apri l\'app', 'res.browseLocal': 'L\'app esiste solo nell\'emulatore: {host} non è pubblicato su Internet. Passa a una directory Azure reale per aprirla.', 'res.openFoundry': 'Apri in Azure AI Foundry', 'res.foundryLocal': 'La risorsa esiste solo nell\'emulatore: passa a una directory Azure reale per aprirla nel portale Foundry.',
   'dir.title': 'Directory attiva',
   'dir.azure': 'Azure',
   'dir.local': 'Emulatore',

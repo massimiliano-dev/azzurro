@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, Star, KeyRound, Pencil, Sparkles, Play, Plus, Power, RefreshCw, RotateCw, ShieldCheck, Square, Trash2 } from 'lucide-react';
+import { ExternalLink, Globe, Star, KeyRound, Pencil, Sparkles, Play, Plus, Power, RefreshCw, RotateCw, ShieldCheck, Square, Trash2 } from 'lucide-react';
 import { portal, arm, graph } from '@/lib/api';
 import { useAsync } from '@/lib/hooks';
 import { loadCatalog, parseId, resourceHref, typeLabel, type CatalogType } from '@/lib/arm';
@@ -107,6 +107,11 @@ export default function ResourcePage() {
     || (/^microsoft\.machinelearningservices\/workspaces$/i.test(info.type ?? '') && ['hub', 'project'].includes(foundryKind));
   const foundryUrl: string | null | undefined = !isFoundry ? undefined : !real ? null
     : `https://ai.azure.com/${foundryKind === 'hub' ? 'managementCenter/hub/overview' : 'resource/overview'}?wsid=${encodeURIComponent(id)}&tid=${dirState?.active ?? ''}`;
+  // «Sfoglia» come nel portale Azure: il dominio personalizzato con HTTPS se c'è, altrimenti quello di Azure
+  const isWeb = /^microsoft\.web\/(sites|sites\/slots|staticsites)$/i.test(info.type ?? '');
+  const webHost: string | undefined = !isWeb || !r ? undefined
+    : (r.properties?.hostNameSslStates ?? []).find((h: any) => h.sslState && h.sslState !== 'Disabled' && !/\.azurewebsites\.net$/i.test(h.name))?.name
+      ?? r.properties?.defaultHostName ?? r.properties?.defaultHostname;
   const label = info.type ? typeLabel(cat.data?.all, info.type, locale) : '';
   const crumbs = [
     { label: t('nav.resourceGroups'), href: '/resource-groups' },
@@ -182,6 +187,9 @@ export default function ResourcePage() {
         <Button icon={Pencil} disabled={!r} onClick={() => setJson(JSON.stringify(r, null, 2))}>{t('res.editJson')}</Button>
         <Link className="btn" href={`/iam?scope=${encodeURIComponent(id)}`}><ShieldCheck size={16} />{t('nav.iam')}</Link>
         <Button className={`fav-toggle ${fav.has(id) ? 'on' : ''}`} icon={Star} aria-pressed={fav.has(id)} onClick={() => fav.toggle({ id, name: info.name ?? id, type: info.type ?? '' })}>{fav.has(id) ? t('res.unfavorite') : t('res.favorite')}</Button>
+        {webHost && (real
+          ? <a className="btn" href={`https://${webHost}`} target="_blank" rel="noreferrer noopener" title={webHost}><Globe size={16} />{t('res.browse')}<ExternalLink size={13} aria-hidden /></a>
+          : <Button icon={Globe} disabled title={t('res.browseLocal', { host: webHost })}>{t('res.browse')}</Button>)}
         {foundryUrl !== undefined && (foundryUrl
           ? <a className="btn" href={foundryUrl} target="_blank" rel="noreferrer noopener"><Sparkles size={16} />{t('res.openFoundry')}<ExternalLink size={13} aria-hidden /></a>
           : <Button icon={Sparkles} disabled title={t('res.foundryLocal')}>{t('res.openFoundry')}</Button>)}

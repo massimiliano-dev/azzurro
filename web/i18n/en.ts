@@ -53,7 +53,7 @@ const en: Dict = {
   'home.favorites': 'Favorites', 'res.favorite': 'Favorite', 'res.unfavorite': 'Remove favorite',
   'trace.live': 'Live',
   'dir.notMultitenant': 'The Azzurro app in Entra is still single-tenant, so directories outside the sign-in tenant do not know it. In Entra: App registrations › Azzurro › Authentication › Supported account types › multitenant, or run scripts/azure-app-setup.sh.',
-  'res.openFoundry': 'Open in Azure AI Foundry', 'res.foundryLocal': 'This resource exists only in the emulator: switch to a real Azure directory to open it in the Foundry portal.',
+  'res.browse': 'Open app', 'res.browseLocal': 'The app exists only in the emulator: {host} is not published on the Internet. Switch to a real Azure directory to open it.', 'res.openFoundry': 'Open in Azure AI Foundry', 'res.foundryLocal': 'This resource exists only in the emulator: switch to a real Azure directory to open it in the Foundry portal.',
   'dir.title': 'Active directory',
   'dir.azure': 'Azure',
   'dir.local': 'Emulator',
