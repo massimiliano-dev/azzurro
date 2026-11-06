@@ -59,7 +59,7 @@ export function armRoutes(app: Hono<AppEnv>): void {
       ...(res.headers ?? {}),
     };
     if (res.body === undefined || method === 'HEAD' || res.status === 204) return c.body(null, res.status, headers);
-    if (typeof res.body === 'string') return c.text(res.body, res.status, { ...headers, 'Content-Type': 'application/xml' });
+    if (typeof res.body === 'string') return c.text(res.body, res.status, { ...headers, 'Content-Type': res.body.trimStart().startsWith('<') ? 'application/xml' : 'text/plain; charset=utf-8' });
     return c.json(res.body, res.status, headers);
   };
   app.all('/subscriptions', handler);

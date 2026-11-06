@@ -39,7 +39,7 @@ function cacheTtl(method: string, url: string): number {
 function invalidateAfter(method: string, url: string): void {
   const path = url.split('?')[0].toLowerCase();
   if (method === 'GET') return;
-  if (method === 'POST' && (/\/providers\/microsoft\.costmanagement\/(query|forecast)$/.test(path) || /\/(list\w*|check\w*|validate\w*|whatif|getbyids)$/.test(path))) return;
+  if (method === 'POST' && (/\/providers\/microsoft\.costmanagement\/(query|forecast)$/.test(path) || /\/(list\w*|check\w*|validate\w*|whatif|getbyids|containerlogs)$/.test(path))) return;
   const family = path.startsWith('/api/arm/') ? 'arm' : path.startsWith('/api/graph/') ? 'graph' : 'portal';
   invalidate((k) => {
     const kp = k.split(' ')[1]?.toLowerCase() ?? '';

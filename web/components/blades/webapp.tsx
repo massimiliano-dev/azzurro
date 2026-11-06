@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Eye, EyeOff, Globe, Lock, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
 import { arm } from '@/lib/api';
 import { useAsync } from '@/lib/hooks';
@@ -343,6 +343,125 @@ export function WebAppSecurity({ id, site, reload }: { id: string; site: any; re
                 } }, WEB_API), auth.reload)}>{L('Salva', 'Save')}</Button>
             </div>
           </>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+const MAX_LINES = 1500;
+
+/**
+ * Log dell'app: le ultime righe del contenitore (come il «Flusso di log» del portale Azure, via
+ * POST containerlogs) aggiornate da sole, e le impostazioni «Log del servizio app» (config/logs).
+ */
+export function WebAppLogs({ id, site }: { id: string; site: any }) {
+  const L = useL();
+  const toast = useToast();
+  const { real } = useDirectory();
+  const linux = /linux/i.test(site?.kind ?? '') || !!site?.properties?.reserved;
+  const [live, setLive] = useState(true);
+  const [filter, setFilter] = useState('');
+  const logs = useAsync(async () => {
+    const r = await arm.post<unknown>(`${id}/containerlogs`, {}, WEB_API);
+    const text = typeof r === 'string' ? r : r == null ? '' : JSON.stringify(r, null, 2);
+    return text.split('\n').filter(Boolean).slice(-MAX_LINES);
+  }, [id]);
+  const cfg = useAsync(async () => (await arm.get<any>(`${id}/config/logs`, WEB_API)).properties ?? {}, [id]);
+  const [form, setForm] = useState<any>(null);
+  useEffect(() => { if (cfg.data) setForm(structuredClone(cfg.data)); }, [cfg.data]);
+  const [saving, setSaving] = useState(false);
+  const box = useRef<HTMLPreElement>(null);
+  const reload = useRef(logs.reload);
+  reload.current = logs.reload;
+
+  // la richiesta successiva parte solo dopo la risposta: un log lento non accumula chiamate
+  useEffect(() => {
+    if (!live) return;
+    let stop = false;
+    let t: ReturnType<typeof setTimeout>;
+    const tick = async () => { await reload.current(); if (!stop) t = setTimeout(tick, 5000); };
+    t = setTimeout(tick, 5000);
+    return () => { stop = true; clearTimeout(t); };
+  }, [live]);
+  // in fondo come un terminale, a meno che non si stia leggendo più su
+  useEffect(() => {
+    const el = box.current;
+    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 80) el.scrollTop = el.scrollHeight;
+  }, [logs.data]);
+
+  const lines = (logs.data ?? []).filter((l) => !filter || l.toLowerCase().includes(filter.toLowerCase()));
+  const scm = (site?.properties?.enabledHostNames ?? []).find((h: string) => h.includes('.scm.'));
+  const set = (path: string[], v: unknown) => setForm((f: any) => {
+    const n = structuredClone(f ?? {});
+    let o = n;
+    for (const k of path.slice(0, -1)) o = o[k] ??= {};
+    o[path.at(-1)!] = v;
+    return n;
+  });
+  const fsHttp = form?.httpLogs?.fileSystem ?? {};
+  const save = async () => {
+    setSaving(true);
+    try {
+      await arm.put(`${id}/config/logs`, { properties: form }, WEB_API);
+      toast.ok(L('Impostazioni dei log salvate', 'Log settings saved'));
+      await cfg.reload();
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="stack" style={{ gap: 16 }}>
+      <Card title={L('Flusso di log', 'Log stream')} padded={false}
+        actions={<span className="row" style={{ gap: 10 }}>
+          <Switch checked={live} onChange={setLive} label={L('In diretta', 'Live')} />
+          <Button size="sm" variant="ghost" onClick={() => void logs.reload()}>{L('Aggiorna', 'Refresh')}</Button>
+          {real && scm && <a className="btn sm" href={`https://${scm}/api/logstream`} target="_blank" rel="noreferrer noopener">Kudu</a>}
+        </span>}>
+        <div className="card-body" style={{ paddingBottom: 8 }}>
+          <Input type="search" placeholder={L('Filtra le righe (es. error, 500, warn)', 'Filter lines (e.g. error, 500, warn)')} value={filter} onChange={(e) => setFilter(e.target.value)} aria-label={L('Filtra', 'Filter')} />
+        </div>
+        {logs.error && !logs.data ? (
+          <div className="card-body">
+            <ErrorNotice error={logs.error} onRetry={logs.reload} />
+            {!linux && <Notice>{L('Per le app Windows Azure non restituisce il log del contenitore: aprilo da Kudu (pulsante in alto) o attiva qui sotto la registrazione su file system.', 'For Windows apps Azure does not return the container log: open it in Kudu (button above) or turn on file system logging below.')}</Notice>}
+          </div>
+        ) : !logs.data ? <div className="card-body"><Skeleton rows={6} /></div> : (
+          <pre ref={box} className="log-view" aria-live="off">{lines.length ? lines.map((l, i) => <span key={i} className={/\b(error|fail(ed|ure)?|exception|fatal|crit)/i.test(l) ? 'err' : /\bwarn/i.test(l) ? 'warn' : undefined}>{l}{'\n'}</span>) : L('Nessuna riga.', 'No lines.')}</pre>
+        )}
+        <p className="small muted card-body" style={{ margin: 0 }}>{L(
+          `Ultime ${MAX_LINES} righe del log del contenitore${live ? ', aggiornate ogni 5 secondi' : ''}. Se è vuoto, attiva la registrazione qui sotto: Azure scrive i log solo quando è attiva.`,
+          `Last ${MAX_LINES} lines of the container log${live ? ', refreshed every 5 seconds' : ''}. If it is empty, turn on logging below: Azure writes logs only while it is on.`,
+        )}</p>
+      </Card>
+
+      <Card title={L('Log del servizio app', 'App Service logs')} actions={<Button variant="primary" loading={saving} disabled={!form} onClick={save}>{L('Salva', 'Save')}</Button>}>
+        {cfg.error ? <ErrorNotice error={cfg.error} onRetry={cfg.reload} /> : !form ? <Skeleton rows={4} /> : (
+          <div className="stack" style={{ gap: 14 }}>
+            {linux ? (
+              <>
+                <Switch checked={!!fsHttp.enabled} onChange={(v) => set(['httpLogs', 'fileSystem', 'enabled'], v)} label={L('Registrazione dei log dell\'applicazione su file system', 'Application logging to the file system')} />
+                <div className="grid cols-2">
+                  <Field label={L('Quota (MB)', 'Quota (MB)')} htmlFor="lg-q" hint="25–100"><Input id="lg-q" type="number" min={25} max={100} value={fsHttp.retentionInMb ?? 35} disabled={!fsHttp.enabled} onChange={(e) => set(['httpLogs', 'fileSystem', 'retentionInMb'], Number(e.target.value))} /></Field>
+                  <Field label={L('Conservazione (giorni)', 'Retention (days)')} htmlFor="lg-d" hint={L('0 = per sempre, entro la quota', '0 = forever, within the quota')}><Input id="lg-d" type="number" min={0} value={fsHttp.retentionInDays ?? 0} disabled={!fsHttp.enabled} onChange={(e) => set(['httpLogs', 'fileSystem', 'retentionInDays'], Number(e.target.value))} /></Field>
+                </div>
+              </>
+            ) : (
+              <>
+                <Field label={L('Registrazione applicazione (file system)', 'Application logging (file system)')} htmlFor="lg-app" hint={L('Azure la spegne da sola dopo 12 ore.', 'Azure turns it off by itself after 12 hours.')}>
+                  <Select id="lg-app" value={form.applicationLogs?.fileSystem?.level ?? 'Off'} onChange={(e) => set(['applicationLogs', 'fileSystem', 'level'], e.target.value)}>
+                    {['Off', 'Error', 'Warning', 'Information', 'Verbose'].map((v) => <option key={v} value={v}>{v === 'Off' ? L('Spenta', 'Off') : v}</option>)}
+                  </Select>
+                </Field>
+                <Switch checked={!!fsHttp.enabled} onChange={(v) => set(['httpLogs', 'fileSystem', 'enabled'], v)} label={L('Registrazione del server web (file system)', 'Web server logging (file system)')} />
+                <Switch checked={!!form.detailedErrorMessages?.enabled} onChange={(v) => set(['detailedErrorMessages', 'enabled'], v)} label={L('Messaggi di errore dettagliati', 'Detailed error messages')} />
+                <Switch checked={!!form.failedRequestsTracing?.enabled} onChange={(v) => set(['failedRequestsTracing', 'enabled'], v)} label={L('Traccia delle richieste non riuscite', 'Failed request tracing')} />
+              </>
+            )}
+          </div>
         )}
       </Card>
     </div>

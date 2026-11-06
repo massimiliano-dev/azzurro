@@ -1148,3 +1148,7 @@ tr:hover .res-icon, a:hover > .res-icon { transform: rotate(-6deg) scale(1.08); 
 .ai-doc svg { color: var(--azzurro); flex: none; }
 .ai-doc .n { font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .ai-doc .btn { flex: none; pointer-events: none; }
+/* flusso di log delle app */
+.log-view { margin: 0; height: 460px; overflow: auto; padding: 12px 16px; background: #0b1020; color: #d6deeb; font: 12px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.log-view .err { color: #ff8a80; }
+.log-view .warn { color: #ffd479; }

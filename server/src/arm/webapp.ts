@@ -108,3 +108,35 @@ export async function analyzeCustomHostname(site: any, hostName: string, inbound
     },
   };
 }
+
+/**
+ * Log del contenitore di un'app (POST .../containerlogs su Azure): l'emulatore non esegue codice,
+ * quindi il log racconta il ciclo di vita registrato dalle azioni (creazione, avvio, arresto, riavvio)
+ * con le stesse righe della piattaforma App Service.
+ */
+export function containerLog(site: any): string {
+  const name = site.name as string;
+  const stack = String(site.properties?.siteConfig?.linuxFxVersion || 'NODE|22-lts');
+  const image = `mcr.microsoft.com/appsvc/${stack.split('|')[0].toLowerCase()}:${(stack.split('|')[1] ?? 'latest').toLowerCase()}_20251015.1.tuxprod`;
+  const container = `${name.toLowerCase()}_0_${String(site.id).length.toString(16).padStart(8, '0')}`;
+  const at = (t: number, ms: number, msg: string) => `${new Date(t + ms).toISOString()} ${msg}`;
+  const startup = (t: number) => [
+    at(t, 0, `INFO  - Pulling image: ${image}`),
+    at(t, 4200, `INFO  - ${stack.split('|')[1] ?? 'latest'}_20251015.1.tuxprod Pulling from appsvc/${stack.split('|')[0].toLowerCase()}`),
+    at(t, 4300, 'INFO  -  Digest: sha256:4f0d7c1e8a9b2c3d4e5f60718293a4b5c6d7e8f9012a3b4c5d6e7f8091a2b3c4'),
+    at(t, 4400, `INFO  -  Status: Image is up to date for ${image}`),
+    at(t, 4500, `INFO  - Pull Image successful, Time taken: 0 Seconds`),
+    at(t, 4600, `INFO  - Starting container for site`),
+    at(t, 4700, `INFO  - docker run -d --expose=8080 --name ${container} -e WEBSITE_SITE_NAME=${name} -e WEBSITE_AUTH_ENABLED=False -e PORT=8080 -e WEBSITES_ENABLE_APP_SERVICE_STORAGE=false ${image}`),
+    at(t, 12000, `INFO  - Initiating warmup request to container ${container} for site ${name}`),
+    at(t, 19500, `INFO  - Container ${container} for site ${name} initialized successfully and is ready to serve requests.`),
+  ];
+  const created = Date.parse(site._created ?? site.properties?.lastModifiedTimeUtc ?? new Date().toISOString());
+  const lines = startup(created);
+  for (const e of (site._events ?? []) as { at: string; kind: 'start' | 'stop' | 'restart' }[]) {
+    const t = Date.parse(e.at);
+    if (e.kind !== 'start') lines.push(at(t, 0, `INFO  - Stopping site ${name} because it was ${e.kind === 'restart' ? 'restarted' : 'stopped'} by the user.`), at(t, 900, `INFO  - Container ${container} for site ${name} stopped.`));
+    if (e.kind !== 'stop') lines.push(...startup(t + 2000));
+  }
+  return lines.join('\n') + '\n';
+}

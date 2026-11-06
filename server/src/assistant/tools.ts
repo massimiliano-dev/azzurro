@@ -154,7 +154,7 @@ export function classify(name: string, input: any): Kind {
     if (m === 'DELETE') return 'delete';
     if (name === 'arm_request' && m === 'POST') {
       const last = String(input.path ?? '').split('/').filter(Boolean).pop() ?? '';
-      if (/^(list\w*|check\w*|validate\w*|whatIf|query|forecast)$/i.test(last) || /microsoft\.costmanagement\//i.test(input.path)) return 'read';
+      if (/^(list\w*|check\w*|validate\w*|whatIf|query|forecast|containerlogs)$/i.test(last) || /microsoft\.costmanagement\//i.test(input.path)) return 'read';
     }
     return 'write';
   }

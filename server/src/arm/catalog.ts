@@ -7,6 +7,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { accountKey, deterministicIp, randomToken, uniqueString, uuid } from '../ids.ts';
 import { HttpError } from '../errors.ts';
 import { checkDeployment } from './aimodels.ts';
+import { containerLog } from './webapp.ts';
 
 export type Category = 'compute' | 'containers' | 'web' | 'storage' | 'databases' | 'networking' | 'identity' | 'security' | 'integration' | 'monitor' | 'ai' | 'management';
 export type Lbl = { it: string; en: string };
@@ -431,9 +432,10 @@ export const TYPES: TypeDef[] = [
     hooks: ['identity', 'siteconfig'],
     secrets: () => ({ publishingPassword: randomToken(45) }),
     actions: {
-      start: (r, c) => { r.properties.state = 'Running'; c.save(); return null; },
-      stop: (r, c) => { r.properties.state = 'Stopped'; c.save(); return null; },
-      restart: () => null,
+      start: (r, c) => { r.properties.state = 'Running'; (r._events ??= []).push({ at: c.now, kind: 'start' }); c.save(); return null; },
+      stop: (r, c) => { r.properties.state = 'Stopped'; (r._events ??= []).push({ at: c.now, kind: 'stop' }); c.save(); return null; },
+      restart: (r, c) => { (r._events ??= []).push({ at: c.now, kind: 'restart' }); r._events = r._events.slice(-50); c.save(); return null; },
+      containerlogs: (r) => containerLog(r),
       publishxml: (r, c) => `<publishData><publishProfile profileName="${c.name} - Web Deploy" publishMethod="MSDeploy" publishUrl="${lower(c.name)}.scm.azurewebsites.net:443" msdeploySite="${c.name}" userName="$${c.name}" userPWD="${r._secrets.publishingPassword}" destinationAppUrl="https://${lower(c.name)}.azurewebsites.net" /></publishData>`,
     },
     ui: {
